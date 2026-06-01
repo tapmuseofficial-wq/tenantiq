@@ -337,7 +337,7 @@ export default function LandingPage() {
               <div className="mb-7">
                 <p className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Pro</p>
                 <div>
-                  <span className="text-5xl font-extrabold text-slate-100">$29</span>
+                  <span className="text-5xl font-extrabold text-slate-100">$19</span>
                   <span className="text-slate-400 ml-2 text-sm">/month</span>
                 </div>
                 <p className="text-sm text-slate-400 mt-2">For active landlords</p>
