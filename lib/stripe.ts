@@ -16,7 +16,7 @@ export const PLANS = {
   },
   pro: {
     name: 'Pro',
-    price: 29,
+    price: 19,
     screenings: Infinity,
     features: [
       'Unlimited screenings',

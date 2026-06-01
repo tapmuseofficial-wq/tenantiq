@@ -10,6 +10,7 @@ import {
   Sparkles,
   Star,
 } from 'lucide-react'
+import { CheckoutButton } from '@/components/ui/checkout-button'
 
 export default function LandingPage() {
   return (
@@ -362,16 +363,16 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/signup"
-                className="block text-center font-semibold px-6 py-3.5 rounded-xl text-white text-sm transition-all duration-200 hover:opacity-90"
+              <CheckoutButton
+                redirectIfLoggedOut="/signup"
+                className="w-full block text-center font-semibold px-6 py-3.5 rounded-xl text-white text-sm transition-all duration-200 hover:opacity-90 disabled:opacity-60"
                 style={{
                   background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
                   boxShadow: '0 0 24px rgba(59,130,246,0.4)',
                 }}
               >
                 Start with Pro
-              </Link>
+              </CheckoutButton>
             </div>
           </div>
         </div>

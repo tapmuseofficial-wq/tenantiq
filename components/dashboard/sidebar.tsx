@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { CheckoutButton } from '@/components/ui/checkout-button'
 import { Profile } from '@/types'
 
 const navItems = [
@@ -114,19 +115,17 @@ export function Sidebar({ profile }: SidebarProps) {
                 }}
               />
             </div>
-            <form action="/api/stripe/create-checkout" method="POST">
-              <button
-                type="submit"
-                className="w-full text-xs font-semibold text-white rounded-lg py-2 flex items-center justify-center gap-1.5 transition-all duration-200 hover:opacity-90"
-                style={{
-                  background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-                  boxShadow: '0 0 16px rgba(59,130,246,0.3)',
-                }}
-              >
-                Upgrade to Pro
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </form>
+            <CheckoutButton
+              redirectIfLoggedOut="/login"
+              className="w-full text-xs font-semibold text-white rounded-lg py-2 flex items-center justify-center gap-1.5 transition-all duration-200 hover:opacity-90 disabled:opacity-60"
+              style={{
+                background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+                boxShadow: '0 0 16px rgba(59,130,246,0.3)',
+              }}
+            >
+              Upgrade to Pro
+              <ChevronRight className="w-3 h-3" />
+            </CheckoutButton>
           </div>
         ) : (
           <div
