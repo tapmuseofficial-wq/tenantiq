@@ -3,20 +3,43 @@ import { notFound } from 'next/navigation'
 import { ApplicationForm } from '@/components/apply/application-form'
 import { formatCurrency } from '@/lib/utils'
 import { Home, Shield, Sparkles } from 'lucide-react'
+import type { Property } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ApplyPage({ params }: { params: { token: string } }) {
-  const supabase = createServiceClient()
+  // Tokens are nanoid(12): URL-safe alphanumeric + _ and -.
+  // Reject anything that can't possibly be valid before hitting the database.
+  if (!params.token || !/^[\w-]{6,64}$/.test(params.token)) {
+    notFound()
+  }
 
-  const { data: property, error } = await supabase
-    .from('properties')
-    .select('*')
-    .eq('screening_token', params.token)
-    .eq('is_active', true)
-    .single()
+  let property: Property
 
-  if (error || !property) notFound()
+  try {
+    const supabase = createServiceClient()
+
+    const { data, error } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('screening_token', params.token)
+      .eq('is_active', true)
+      .single()
+
+    if (error || !data) {
+      // PGRST116 = no rows matched — the token is invalid or the listing is inactive
+      console.error('[apply] property lookup failed:', error?.message ?? 'no data', { token: params.token })
+      notFound()
+    }
+
+    property = data
+  } catch (err) {
+    // createServiceClient() throws if env vars are missing; the Supabase client
+    // can also throw on unexpected network or auth errors. Log for Vercel logs,
+    // return 404 so tenants never see a raw 500.
+    console.error('[apply] unhandled error:', err instanceof Error ? err.message : err, { token: params.token })
+    notFound()
+  }
 
   return (
     <div className="min-h-screen" style={{ background: '#0A0F1E' }}>
@@ -84,10 +107,7 @@ export default async function ApplyPage({ params }: { params: { token: string } 
                 <p className="text-slate-400 text-sm mt-1">{property.address}</p>
               )}
               <div className="flex items-center gap-3 mt-2">
-                <span
-                  className="font-bold text-sm"
-                  style={{ color: '#60A5FA' }}
-                >
+                <span className="font-bold text-sm" style={{ color: '#60A5FA' }}>
                   {formatCurrency(property.monthly_rent)}/mo
                 </span>
                 {property.bedrooms && (
