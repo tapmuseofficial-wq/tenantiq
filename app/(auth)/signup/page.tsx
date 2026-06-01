@@ -58,12 +58,19 @@ export default function SignupPage() {
       })
       authData = result.data
       authError = result.error
-    } catch {
-      setError({ text: 'Something went wrong. Please check your connection and try again.', showSignIn: false })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[signup] supabase.auth.signUp threw:', err)
+      setError({ text: `Sign-up failed: ${message}`, showSignIn: false })
       return
     }
 
     if (authError) {
+      console.error('[signup] authError:', {
+        message: authError.message,
+        status: authError.status,
+        name: authError.name,
+      })
       setError(friendlyError(authError.message))
       return
     }
@@ -76,9 +83,11 @@ export default function SignupPage() {
       return
     }
 
-    // Unexpected: no user object returned at all
+    // Unexpected: no user object returned at all — log the full response so we
+    // can see exactly what Supabase returned in the browser console / Vercel logs.
     if (!authData.user) {
-      setError({ text: 'Something went wrong. Please try again.', showSignIn: false })
+      console.error('[signup] unexpected response — no user object:', authData)
+      setError({ text: `Sign-up failed: unexpected response from Supabase (no user returned). Check the browser console for details.`, showSignIn: false })
       return
     }
 
