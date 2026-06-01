@@ -2,6 +2,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { extractIncomeFromDocument, screenApplicant } from '@/lib/anthropic'
 
 export async function runAnalysis(application_id: string): Promise<void> {
+  console.log(`[analyze] starting — application_id=${application_id}`)
+
   const supabase = createServiceClient()
 
   const { data: app, error: fetchError } = await supabase
@@ -11,9 +13,11 @@ export async function runAnalysis(application_id: string): Promise<void> {
     .single()
 
   if (fetchError || !app) {
-    console.error('Analysis: application not found', application_id)
+    console.error(`[analyze] application not found — id=${application_id}`, fetchError?.message)
     return
   }
+
+  console.log(`[analyze] fetched application — name="${app.full_name}" has_document=${!!app.income_document_path}`)
 
   await supabase
     .from('applications')
@@ -30,17 +34,24 @@ export async function runAnalysis(application_id: string): Promise<void> {
 
   // Step 1: Extract income from document — only if one was uploaded
   if (app.income_document_path) {
+    console.log(`[analyze] downloading document — path=${app.income_document_path}`)
     try {
       const { data: fileData, error: downloadError } = await supabase.storage
         .from('income-documents')
         .download(app.income_document_path)
 
-      if (!downloadError && fileData) {
+      if (downloadError || !fileData) {
+        console.error(`[analyze] document download failed — path=${app.income_document_path}`, downloadError?.message)
+      } else {
         const arrayBuffer = await fileData.arrayBuffer()
         const base64 = Buffer.from(arrayBuffer).toString('base64')
         const mediaType = fileData.type || 'application/octet-stream'
 
+        console.log(`[analyze] extracting income from document — mediaType=${mediaType} size=${arrayBuffer.byteLength}`)
+
         const extraction = await extractIncomeFromDocument(base64, mediaType)
+
+        console.log(`[analyze] income extraction complete — monthly_income=${extraction.monthly_income} confidence=${extraction.confidence}`)
 
         income_verified = extraction.monthly_income
         income_document_type = extraction.document_type
@@ -50,15 +61,17 @@ export async function runAnalysis(application_id: string): Promise<void> {
         if (extraction.monthly_income !== null) {
           const diff = Math.abs(app.monthly_income_reported - extraction.monthly_income) / Math.max(app.monthly_income_reported, 1)
           income_verification_status = diff <= 0.15 ? 'verified' : 'discrepancy'
+          console.log(`[analyze] income verification — reported=${app.monthly_income_reported} extracted=${extraction.monthly_income} diff=${(diff * 100).toFixed(1)}% status=${income_verification_status}`)
         }
       }
     } catch (err) {
-      console.error('Income extraction error:', err)
+      console.error(`[analyze] income extraction threw — application_id=${application_id}`, err instanceof Error ? err.message : err)
       income_verification_notes = 'Document could not be processed'
     }
   }
 
   // Step 2: AI screening — always runs regardless of document
+  console.log(`[analyze] starting screening — application_id=${application_id}`)
   try {
     const screening = await screenApplicant({
       monthly_rent: property.monthly_rent,
@@ -81,7 +94,9 @@ export async function runAnalysis(application_id: string): Promise<void> {
       reference_2_phone: app.reference_2_phone,
     })
 
-    await supabase
+    console.log(`[analyze] screening complete — score=${screening.score} recommendation=${screening.recommendation}`)
+
+    const { error: updateError } = await supabase
       .from('applications')
       .update({
         income_verified,
@@ -101,11 +116,20 @@ export async function runAnalysis(application_id: string): Promise<void> {
         analyzed_at: new Date().toISOString(),
       })
       .eq('id', application_id)
+
+    if (updateError) {
+      console.error(`[analyze] failed to save screening results — application_id=${application_id}`, updateError.message)
+    } else {
+      console.log(`[analyze] done — application_id=${application_id}`)
+    }
   } catch (err) {
-    console.error('Screening error:', err)
-    await supabase
+    console.error(`[analyze] screenApplicant threw — application_id=${application_id}`, err instanceof Error ? err.message : err)
+    const { error: statusError } = await supabase
       .from('applications')
-      .update({ status: 'error', error_message: String(err) })
+      .update({ status: 'error', error_message: err instanceof Error ? err.message : String(err) })
       .eq('id', application_id)
+    if (statusError) {
+      console.error(`[analyze] also failed to set error status — application_id=${application_id}`, statusError.message)
+    }
   }
 }

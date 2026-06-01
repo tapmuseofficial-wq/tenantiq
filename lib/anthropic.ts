@@ -1,8 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-export const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-})
+// Create the client per-call so a missing key throws with a clear message
+// inside the function that uses it, not at module load time (which would
+// silently crash the entire route with no log entry).
+function getClient(): Anthropic {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    throw new Error(
+      'Missing env var: ANTHROPIC_API_KEY — set it in Vercel → Project → Settings → Environment Variables'
+    )
+  }
+  return new Anthropic({ apiKey })
+}
 
 export interface IncomeExtractionResult {
   monthly_income: number | null
@@ -33,8 +42,14 @@ export async function extractIncomeFromDocument(
   documentBase64: string,
   mediaType: string
 ): Promise<IncomeExtractionResult> {
+  const anthropic = getClient()
+
   const isImage = mediaType.startsWith('image/')
   const isPDF = mediaType === 'application/pdf'
+
+  if (!isImage && !isPDF) {
+    throw new Error(`Unsupported media type for income extraction: ${mediaType}`)
+  }
 
   const docBlock: Anthropic.ContentBlockParam = isPDF
     ? ({
@@ -91,7 +106,9 @@ Respond ONLY with valid JSON matching the specified schema.`,
 
   const text = response.content[0].type === 'text' ? response.content[0].text : ''
   const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('No JSON found in income extraction response')
+  if (!jsonMatch) {
+    throw new Error(`Income extraction: no JSON in response. Raw text: ${text.slice(0, 200)}`)
+  }
 
   return JSON.parse(jsonMatch[0]) as IncomeExtractionResult
 }
@@ -116,6 +133,8 @@ export async function screenApplicant(params: {
   reference_2_relationship: string | null
   reference_2_phone: string | null
 }): Promise<ScreeningResult> {
+  const anthropic = getClient()
+
   const effectiveIncome = params.income_verified ?? params.monthly_income_reported
   const incomeRatio = (effectiveIncome / params.monthly_rent).toFixed(2)
 
@@ -201,7 +220,9 @@ Respond with ONLY the JSON object.`,
 
   const text = response.content[0].type === 'text' ? response.content[0].text : ''
   const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('No JSON found in screening response')
+  if (!jsonMatch) {
+    throw new Error(`Screening: no JSON in response. Raw text: ${text.slice(0, 200)}`)
+  }
 
   return JSON.parse(jsonMatch[0]) as ScreeningResult
 }

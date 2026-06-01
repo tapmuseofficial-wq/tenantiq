@@ -137,8 +137,16 @@ export async function POST(request: NextRequest) {
       .update({ screenings_used: (profile?.screenings_used ?? 0) + 1 })
       .eq('id', property.landlord_id)
 
-    // Trigger AI analysis — called directly to avoid dependency on NEXT_PUBLIC_APP_URL
-    runAnalysis(application.id).catch(console.error)
+    // Await the analysis before returning. Fire-and-forget is not reliable on
+    // Vercel — the function can be terminated as soon as the response is sent,
+    // killing the background promise before it completes. Awaiting here keeps
+    // the function alive until the analysis finishes. Analysis failures are
+    // caught and logged but do not fail the submission for the tenant.
+    try {
+      await runAnalysis(application.id)
+    } catch (err) {
+      console.error('[submit] runAnalysis threw unexpectedly — application saved but analysis failed:', err instanceof Error ? err.message : err)
+    }
 
     return NextResponse.json({ success: true, application_id: application.id })
   } catch (error) {
