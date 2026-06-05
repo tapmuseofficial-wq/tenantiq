@@ -1,14 +1,26 @@
 import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 import './globals.css'
+
+// next/font self-hosts Inter from Vercel's CDN — no external network request,
+// no render-blocking stylesheet, no flash of unstyled text.
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'TenantIQ — AI-Powered Tenant Screening',
   description: 'Screen tenants faster and smarter with AI income verification and smart scoring.',
+  verification: {
+    google: 'HmzMtboNghZP9fLmef8bTi27Pf8Y6NzsP3K295JefmQ',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" style={{ colorScheme: 'dark' }}>
+    <html lang="en" className={inter.variable} style={{ colorScheme: 'dark' }}>
       <head>
         <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18214503686" />
         <script

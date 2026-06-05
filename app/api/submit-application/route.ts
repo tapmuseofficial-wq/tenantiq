@@ -30,14 +30,11 @@ export async function POST(request: NextRequest) {
     // Check landlord screening limit
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_status, screenings_used, email')
+      .select('subscription_status, screenings_used')
       .eq('id', property.landlord_id)
       .single()
 
-    const TEST_EMAILS = ['rhehrj262@gmail.com']
-    const freeLimit = TEST_EMAILS.includes(profile?.email ?? '') ? 999 : 3
-
-    if (profile?.subscription_status === 'free' && (profile?.screenings_used ?? 0) >= freeLimit) {
+    if (profile?.subscription_status === 'free' && (profile?.screenings_used ?? 0) >= 3) {
       return NextResponse.json(
         { error: 'This landlord has reached their free plan limit' },
         { status: 402 }

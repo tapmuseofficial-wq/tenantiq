@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runAnalysis } from '@/lib/analyze'
 
 export async function POST(request: NextRequest) {
+  // This endpoint triggers expensive Anthropic API calls — require a shared
+  // secret so it cannot be abused by external callers.
+  const secret = process.env.INTERNAL_API_SECRET
+  if (!secret || request.headers.get('x-internal-secret') !== secret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   let application_id: string | undefined
   try {
     const body = await request.json()
