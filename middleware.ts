@@ -44,8 +44,10 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/dashboard') && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    // Include the query string so ?upgraded=true (and any other params) survive
-    // the login redirect and the user lands back on the intended URL after auth.
+    // Clear any query params carried over from the original URL before setting
+    // the redirect param — otherwise /dashboard?upgraded=true produces
+    // /login?upgraded=true&redirect=... with a spurious extra param.
+    url.search = ''
     url.searchParams.set('redirect', request.nextUrl.pathname + request.nextUrl.search)
     return NextResponse.redirect(url)
   }
