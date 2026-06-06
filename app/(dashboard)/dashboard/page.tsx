@@ -6,6 +6,8 @@ import { ScoreRing } from '@/components/dashboard/score-ring'
 import { Users, CheckCircle, BarChart3, Building2, Plus, ArrowRight, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate, getRecommendationStyle } from '@/lib/utils'
+import { Suspense } from 'react'
+import { ConversionTracker } from '@/components/dashboard/conversion-tracker'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -34,6 +36,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* Fires the Google Ads conversion event when ?upgraded=true is present */}
+      <Suspense fallback={null}>
+        <ConversionTracker />
+      </Suspense>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
