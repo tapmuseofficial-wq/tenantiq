@@ -6,27 +6,31 @@ import {
   Users,
   CheckCircle,
   ArrowRight,
-  Zap,
   Sparkles,
   Star,
+  Lock,
+  Link2,
+  ClipboardList,
+  Brain,
 } from 'lucide-react'
 import { CheckoutButton } from '@/components/ui/checkout-button'
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen" style={{ background: '#0A0F1E' }}>
-      {/* Navbar */}
+
+      {/* ── Navbar ───────────────────────────────────────────── */}
       <nav className="glass-nav sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-5 sm:px-8 flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              className="w-8 h-8 rounded-xl flex items-center justify-center"
               style={{
                 background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-                boxShadow: '0 0 20px rgba(59,130,246,0.4)',
+                boxShadow: '0 0 16px rgba(59,130,246,0.4)',
               }}
             >
-              <Sparkles className="w-5 h-5 text-white" />
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
             <span className="text-base font-bold text-slate-100 tracking-tight">TenantIQ</span>
           </div>
@@ -42,7 +46,7 @@ export default function LandingPage() {
               className="text-sm font-semibold text-white px-4 py-2 rounded-xl transition-all duration-200 hover:opacity-90"
               style={{
                 background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-                boxShadow: '0 0 20px rgba(59,130,246,0.3)',
+                boxShadow: '0 0 16px rgba(59,130,246,0.3)',
               }}
             >
               Get Started Free
@@ -51,127 +55,217 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         {/* Background orbs */}
         <div
           className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)' }}
+          style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.13) 0%, transparent 70%)' }}
         />
         <div
           className="absolute top-20 -right-40 w-[500px] h-[500px] rounded-full pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.09) 0%, transparent 70%)' }}
         />
-        <div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse, rgba(59,130,246,0.06) 0%, transparent 70%)' }}
-        />
 
-        <div className="relative max-w-6xl mx-auto px-5 sm:px-8 pt-24 pb-20 text-center">
+        <div className="relative max-w-5xl mx-auto px-5 sm:px-8 pt-16 sm:pt-24 pb-16 sm:pb-20 text-center">
+
           {/* Badge */}
           <div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-10"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold mb-8"
             style={{
               background: 'rgba(59,130,246,0.1)',
-              border: '1px solid rgba(59,130,246,0.2)',
+              border: '1px solid rgba(59,130,246,0.25)',
               color: '#60A5FA',
             }}
           >
-            <Zap className="w-4 h-4" />
-            AI-powered screening for Canadian & US landlords
+            <Sparkles className="w-3.5 h-3.5" />
+            AI-powered screening for Canadian &amp; US landlords
           </div>
 
-          {/* Headline */}
-          <h1 className="text-5xl sm:text-7xl font-extrabold text-slate-100 leading-[1.05] text-balance mb-7">
-            Screen tenants with
+          {/* Headline — clear value prop in under 3 seconds */}
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-slate-100 leading-[1.05] text-balance mb-6">
+            Screen tenants in minutes,
             <br />
-            <span className="gradient-text">AI confidence</span>
+            <span className="gradient-text">not days.</span>
           </h1>
 
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10 text-balance leading-relaxed">
-            Share a link, collect applications, and get AI-verified income reports and smart scores
-            — so you can find the right tenant, faster.
+          {/* Sub — what, how, and outcome in one sentence */}
+          <p className="text-lg sm:text-xl text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
+            Share a link → your applicant fills a 5-minute form → TenantIQ gives you
+            AI-verified income, a 0–100 score, and a clear approve/decline recommendation.
           </p>
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          {/* Primary CTA — large, full-width on mobile */}
+          <div className="flex flex-col items-center gap-3">
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center gap-2 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2.5 text-white font-bold px-10 py-5 rounded-2xl text-lg transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 animate-pulse-glow"
               style={{
                 background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-                boxShadow: '0 0 30px rgba(59,130,246,0.4), 0 4px 20px rgba(0,0,0,0.3)',
+                boxShadow: '0 0 40px rgba(59,130,246,0.45), 0 4px 24px rgba(0,0,0,0.35)',
               }}
             >
-              Start for Free
+              Get Started Free
               <ArrowRight className="w-5 h-5" />
             </Link>
-            <Link
-              href="#how-it-works"
-              className="inline-flex items-center justify-center gap-2 font-semibold px-8 py-4 rounded-2xl text-base transition-all duration-200"
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: '#CBD5E1',
-              }}
-            >
-              See how it works
-            </Link>
+
+            {/* Trust line */}
+            <p className="flex items-center gap-1.5 text-sm text-slate-500">
+              <Lock className="w-3.5 h-3.5" />
+              No credit card required · Free forever for 3 screenings
+            </p>
           </div>
 
-          {/* Stats */}
-          <div className="flex flex-wrap items-center justify-center gap-10 mt-16 pt-16" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {/* Social proof stats */}
+          <div
+            className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 mt-14 pt-14"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          >
             {[
               { value: '1,200+', label: 'Landlords', color: '#60A5FA' },
               { value: '8,500+', label: 'Screenings done', color: '#A78BFA' },
-              { value: '< 2 min', label: 'Avg. analysis time', color: '#34D399' },
+              { value: '< 2 min', label: 'Per applicant', color: '#34D399' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-3xl font-extrabold mb-1" style={{ color: stat.color }}>{stat.value}</div>
-                <div className="text-sm text-slate-500">{stat.label}</div>
+                <div className="text-2xl sm:text-3xl font-extrabold mb-1" style={{ color: stat.color }}>
+                  {stat.value}
+                </div>
+                <div className="text-xs sm:text-sm text-slate-500">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-24 relative">
+      {/* ── 3 Simple Steps ───────────────────────────────────── */}
+      <section className="py-16 sm:py-20">
+        <div className="max-w-4xl mx-auto px-5 sm:px-8">
+
+          {/* Section label */}
+          <p className="text-center text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-10">
+            How it works
+          </p>
+
+          {/* Steps flow */}
+          <div className="grid sm:grid-cols-3 gap-4 sm:gap-6">
+            {[
+              {
+                icon: Link2,
+                step: '1',
+                title: 'Share your link',
+                desc: 'Create a property in 30 seconds. We generate a unique screening link — send it by text or email.',
+                color: '#3B82F6',
+                glow: 'rgba(59,130,246,0.25)',
+                bg: 'rgba(59,130,246,0.1)',
+              },
+              {
+                icon: ClipboardList,
+                step: '2',
+                title: 'Tenant fills the form',
+                desc: 'Applicants complete a 5-minute form on any device and optionally upload a pay stub or bank statement.',
+                color: '#8B5CF6',
+                glow: 'rgba(139,92,246,0.25)',
+                bg: 'rgba(139,92,246,0.1)',
+              },
+              {
+                icon: Brain,
+                step: '3',
+                title: 'Get your AI report',
+                desc: 'TenantIQ returns a 0–100 score, verified income, red flags, and an approve/decline recommendation.',
+                color: '#10B981',
+                glow: 'rgba(16,185,129,0.25)',
+                bg: 'rgba(16,185,129,0.1)',
+              },
+            ].map((item, i) => (
+              <div key={item.step} className="relative">
+                {/* Connector arrow — desktop only */}
+                {i < 2 && (
+                  <div className="hidden sm:flex absolute top-8 right-0 translate-x-1/2 z-10 items-center justify-center">
+                    <ArrowRight className="w-5 h-5 text-slate-700" />
+                  </div>
+                )}
+
+                <div
+                  className="rounded-2xl p-6 h-full"
+                  style={{
+                    background: 'rgba(15,22,41,0.8)',
+                    border: `1px solid ${item.color}25`,
+                  }}
+                >
+                  {/* Icon */}
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                    style={{ background: item.bg, boxShadow: `0 0 20px ${item.glow}` }}
+                  >
+                    <item.icon className="w-7 h-7" style={{ color: item.color }} />
+                  </div>
+
+                  {/* Step number + title */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className="text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: item.bg, color: item.color }}
+                    >
+                      Step {item.step}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-slate-100 text-lg mb-2">{item.title}</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mini CTA under steps */}
+          <div className="text-center mt-10">
+            <Link
+              href="/signup"
+              className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-semibold text-sm transition-colors"
+            >
+              Try it free — no account needed to explore
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Features ─────────────────────────────────────────── */}
+      <section className="py-16 sm:py-24 relative">
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.05) 0%, transparent 60%)' }}
         />
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
-          <div className="text-center mb-14">
+          <div className="text-center mb-12">
             <p className="text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-4">Features</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-100 mb-4">
+            <h2 className="text-2xl sm:text-4xl font-bold text-slate-100 mb-3">
               Everything you need to screen smarter
             </h2>
-            <p className="text-slate-400 max-w-xl mx-auto text-lg">
+            <p className="text-slate-400 max-w-xl mx-auto">
               Stop relying on gut feelings. Get AI-backed data on every applicant in minutes.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {[
               {
                 icon: FileSearch,
                 title: 'AI Income Verification',
-                desc: 'Claude reads pay stubs and bank statements to verify income — flags discrepancies automatically.',
+                desc: 'Reads pay stubs and bank statements — flags discrepancies automatically.',
                 gradient: 'linear-gradient(135deg, #3B82F6, #6366F1)',
                 glow: 'rgba(59,130,246,0.15)',
               },
               {
                 icon: BarChart3,
                 title: 'Smart Scoring',
-                desc: 'Each applicant gets a score out of 100 based on income ratio, employment, rental history, and more.',
+                desc: 'Every applicant gets a 0–100 score based on income, employment, rental history, and more.',
                 gradient: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
                 glow: 'rgba(139,92,246,0.15)',
               },
               {
                 icon: Users,
                 title: 'Side-by-Side Compare',
-                desc: 'Compare multiple applicants in a single table to make the right choice quickly.',
+                desc: 'Compare up to 4 applicants in a single table to make the right call, fast.',
                 gradient: 'linear-gradient(135deg, #10B981, #06B6D4)',
                 glow: 'rgba(16,185,129,0.15)',
               },
@@ -193,114 +287,54 @@ export default function LandingPage() {
                 }}
               >
                 <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 transition-all duration-300 group-hover:scale-110"
-                  style={{ background: feature.gradient, boxShadow: `0 0 24px ${feature.glow}` }}
+                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110"
+                  style={{ background: feature.gradient, boxShadow: `0 0 20px ${feature.glow}` }}
                 >
-                  <feature.icon className="w-6 h-6 text-white" />
+                  <feature.icon className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="font-semibold text-slate-100 mb-2.5 text-base">{feature.title}</h3>
-                <p className="text-sm text-slate-400 leading-relaxed">{feature.desc}</p>
+                <h3 className="font-semibold text-slate-100 mb-2 text-sm">{feature.title}</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how-it-works" className="py-24">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8">
-          <div className="text-center mb-14">
-            <p className="text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-4">How It Works</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-100 mb-4">Three steps to better tenants</h2>
-            <p className="text-slate-400 text-lg">From link to decision in under 2 minutes</p>
-          </div>
-          <div className="grid sm:grid-cols-3 gap-8">
-            {[
-              {
-                step: '01',
-                title: 'Create a screening link',
-                desc: 'Add your rental property and set the monthly rent. We generate a unique link in seconds.',
-                color: '#3B82F6',
-                glow: 'rgba(59,130,246,0.3)',
-              },
-              {
-                step: '02',
-                title: 'Share with applicants',
-                desc: 'Send the link via text or email. Tenants fill out the application on their phone or computer.',
-                color: '#8B5CF6',
-                glow: 'rgba(139,92,246,0.3)',
-              },
-              {
-                step: '03',
-                title: 'Review AI-scored results',
-                desc: 'See every applicant ranked by score, with verified income, red flags, and a recommendation.',
-                color: '#10B981',
-                glow: 'rgba(16,185,129,0.3)',
-              },
-            ].map((item, i) => (
-              <div key={item.step} className="text-center relative">
-                {i < 2 && (
-                  <div
-                    className="hidden sm:block absolute top-7 left-[calc(50%+2rem)] w-[calc(100%-4rem)] h-px"
-                    style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent)' }}
-                  />
-                )}
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-extrabold mx-auto mb-5"
-                  style={{
-                    background: 'rgba(15,22,41,0.8)',
-                    border: `1px solid ${item.color}40`,
-                    color: item.color,
-                    boxShadow: `0 0 24px ${item.glow}`,
-                  }}
-                >
-                  {item.step}
-                </div>
-                <h3 className="font-semibold text-slate-100 text-lg mb-2.5">{item.title}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section className="py-24 relative">
+      {/* ── Pricing ──────────────────────────────────────────── */}
+      <section className="py-16 sm:py-24 relative">
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.06) 0%, transparent 60%)' }}
         />
         <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
-          <div className="text-center mb-14">
+          <div className="text-center mb-12">
             <p className="text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-4">Pricing</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-100 mb-4">Simple, transparent pricing</h2>
-            <p className="text-slate-400 text-lg">Start free, upgrade when you need more</p>
+            <h2 className="text-2xl sm:text-4xl font-bold text-slate-100 mb-3">Simple, transparent pricing</h2>
+            <p className="text-slate-400">Start free. Upgrade only if you need more.</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="grid sm:grid-cols-2 gap-5">
             {/* Free */}
             <div
-              className="rounded-2xl p-8"
+              className="rounded-2xl p-7"
               style={{
                 background: 'rgba(15,22,41,0.7)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 backdropFilter: 'blur(20px)',
               }}
             >
-              <div className="mb-7">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Free</p>
+              <div className="mb-6">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Free</p>
                 <div>
                   <span className="text-5xl font-extrabold text-slate-100">$0</span>
                   <span className="text-slate-500 ml-2 text-sm">/month</span>
                 </div>
-                <p className="text-sm text-slate-500 mt-2">Perfect for occasional landlords</p>
+                <p className="text-sm text-slate-500 mt-1.5">No credit card required</p>
               </div>
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-2.5 mb-7">
                 {['3 tenant screenings', 'AI income verification', 'Smart scoring', 'PDF reports'].map((f) => (
                   <li key={f} className="flex items-center gap-3 text-sm text-slate-400">
-                    <div className="w-5 h-5 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-3 h-3 text-slate-400" />
-                    </div>
+                    <CheckCircle className="w-4 h-4 text-slate-600 flex-shrink-0" />
                     {f}
                   </li>
                 ))}
@@ -314,13 +348,13 @@ export default function LandingPage() {
                   color: '#CBD5E1',
                 }}
               >
-                Get started free
+                Start for free
               </Link>
             </div>
 
             {/* Pro */}
             <div
-              className="rounded-2xl p-8 relative overflow-hidden"
+              className="rounded-2xl p-7 relative overflow-hidden"
               style={{
                 background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(139,92,246,0.12) 100%)',
                 border: '1px solid rgba(59,130,246,0.3)',
@@ -328,44 +362,38 @@ export default function LandingPage() {
                 boxShadow: '0 0 60px rgba(59,130,246,0.1), inset 0 1px 0 rgba(255,255,255,0.08)',
               }}
             >
-              {/* Popular badge */}
               <div
-                className="absolute top-5 right-5 px-3 py-1 rounded-full text-xs font-bold"
+                className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-xs font-bold"
                 style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)', color: 'white' }}
               >
-                POPULAR
+                MOST POPULAR
               </div>
-              <div className="mb-7">
-                <p className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Pro</p>
+              <div className="mb-6">
+                <p className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Pro</p>
                 <div>
                   <span className="text-5xl font-extrabold text-slate-100">$19</span>
                   <span className="text-slate-400 ml-2 text-sm">/month</span>
                 </div>
-                <p className="text-sm text-slate-400 mt-2">For active landlords</p>
+                <p className="text-sm text-slate-400 mt-1.5">For active landlords</p>
               </div>
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-2.5 mb-7">
                 {[
                   'Unlimited screenings',
                   'AI income verification',
-                  'Smart scoring (out of 100)',
+                  'Smart scoring (0–100)',
                   'Side-by-side comparison',
                   'PDF reports',
                   'Priority support',
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-3 text-sm text-slate-300">
-                    <div
-                      className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'rgba(59,130,246,0.25)', border: '1px solid rgba(59,130,246,0.4)' }}
-                    >
-                      <CheckCircle className="w-3 h-3 text-blue-400" />
-                    </div>
+                    <CheckCircle className="w-4 h-4 text-blue-400 flex-shrink-0" />
                     {f}
                   </li>
                 ))}
               </ul>
               <CheckoutButton
                 redirectIfLoggedOut="/signup"
-                className="w-full block text-center font-semibold px-6 py-3.5 rounded-xl text-white text-sm transition-all duration-200 hover:opacity-90 disabled:opacity-60"
+                className="w-full block text-center font-bold px-6 py-3.5 rounded-xl text-white text-sm transition-all duration-200 hover:opacity-90 disabled:opacity-60"
                 style={{
                   background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
                   boxShadow: '0 0 24px rgba(59,130,246,0.4)',
@@ -378,10 +406,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20">
+      {/* ── Testimonials ─────────────────────────────────────── */}
+      <section className="py-16 sm:py-20">
         <div className="max-w-5xl mx-auto px-5 sm:px-8">
-          <div className="grid sm:grid-cols-3 gap-5">
+          <p className="text-center text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-10">
+            What landlords say
+          </p>
+          <div className="grid sm:grid-cols-3 gap-4 sm:gap-5">
             {[
               {
                 quote: "TenantIQ cut our screening time from 3 days to 20 minutes. The AI income verification is a game changer.",
@@ -410,7 +441,7 @@ export default function LandingPage() {
               >
                 <div className="flex gap-0.5 mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
                 <p className="text-sm text-slate-300 leading-relaxed mb-5">&ldquo;{t.quote}&rdquo;</p>
@@ -424,10 +455,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24 text-center">
+      {/* ── Bottom CTA ───────────────────────────────────────── */}
+      <section className="py-16 sm:py-24 px-5">
         <div
-          className="max-w-2xl mx-auto px-5 py-16 rounded-3xl relative overflow-hidden"
+          className="max-w-2xl mx-auto py-14 sm:py-16 px-6 rounded-3xl text-center relative overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.1) 100%)',
             border: '1px solid rgba(59,130,246,0.2)',
@@ -438,35 +469,41 @@ export default function LandingPage() {
             className="absolute -top-20 -right-20 w-64 h-64 rounded-full pointer-events-none"
             style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)' }}
           />
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-100 mb-4 relative">
-            Ready to find your perfect tenant?
+          <h2 className="text-2xl sm:text-4xl font-bold text-slate-100 mb-3 relative">
+            Find your perfect tenant today
           </h2>
-          <p className="text-slate-400 mb-8 relative text-lg">
-            Join 1,200+ landlords who screen smarter with TenantIQ.
+          <p className="text-slate-400 mb-8 relative">
+            Join 1,200+ landlords screening smarter with TenantIQ.
           </p>
-          <Link
-            href="/signup"
-            className="inline-flex items-center gap-2 font-semibold px-8 py-4 rounded-2xl text-white transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 relative"
-            style={{
-              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-              boxShadow: '0 0 40px rgba(59,130,246,0.4)',
-            }}
-          >
-            Create your free account
-            <ArrowRight className="w-5 h-5" />
-          </Link>
+          <div className="flex flex-col items-center gap-3 relative">
+            <Link
+              href="/signup"
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 font-bold px-10 py-5 rounded-2xl text-white text-lg transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
+              style={{
+                background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+                boxShadow: '0 0 40px rgba(59,130,246,0.45)',
+              }}
+            >
+              Create your free account
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <p className="flex items-center gap-1.5 text-sm text-slate-500">
+              <Lock className="w-3.5 h-3.5" />
+              No credit card required
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
+      {/* ── Footer ───────────────────────────────────────────── */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-8">
         <div className="max-w-6xl mx-auto px-5 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)' }}
             >
-              <Sparkles className="w-4 h-4 text-white" />
+              <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="font-bold text-slate-400 text-sm">TenantIQ</span>
           </div>
@@ -475,6 +512,7 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+
     </div>
   )
 }
