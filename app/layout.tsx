@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 // next/font self-hosts Inter from Vercel's CDN — no external network request,
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased" style={{ background: '#0A0F1E', color: '#F1F5F9' }}>
         {children}
+        <Analytics />
       </body>
     </html>
   )
