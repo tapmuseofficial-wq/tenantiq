@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { trackRedditPurchase } from '@/lib/reddit-capi'
 import { StatsCard } from '@/components/dashboard/stats-card'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,7 +10,17 @@ import { formatCurrency, formatDate, getRecommendationStyle } from '@/lib/utils'
 import { Suspense } from 'react'
 import { ConversionTracker } from '@/components/dashboard/conversion-tracker'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const params = await searchParams
+  if (params.upgraded === 'true') {
+    const conversionId = Math.random().toString(36).substring(2, 15)
+    await trackRedditPurchase(conversionId)
+  }
+
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
