@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { trackRedditPurchase } from '@/lib/reddit-capi'
 import { StatsCard } from '@/components/dashboard/stats-card'
@@ -16,13 +17,23 @@ export default async function DashboardPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const params = await searchParams
-  if (params.upgraded === 'true') {
-    const conversionId = Math.random().toString(36).substring(2, 15)
-    await trackRedditPurchase(conversionId)
-  }
-
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  if (params.upgraded === 'true') {
+    const reqHeaders = await headers()
+    const ip = reqHeaders.get('x-forwarded-for')?.split(',')[0].trim()
+      ?? reqHeaders.get('x-real-ip')
+      ?? undefined
+    const userAgent = reqHeaders.get('user-agent') ?? undefined
+    const conversionId = Math.random().toString(36).substring(2, 15)
+    await trackRedditPurchase({
+      conversionId,
+      ip,
+      userAgent,
+      email: user?.email,
+    })
+  }
 
   const [{ data: properties }, { data: recentApps }] = await Promise.all([
     supabase

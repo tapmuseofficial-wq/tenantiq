@@ -1,8 +1,26 @@
+import { createHash } from 'crypto'
+
 const CAPI_URL = 'https://ads-api.reddit.com/api/v2.0/conversions/events/a2_j49bo24fm64b'
 
-export async function trackRedditPurchase(conversionId: string): Promise<void> {
+interface TrackPurchaseOptions {
+  conversionId: string
+  ip?: string
+  userAgent?: string
+  email?: string
+}
+
+export async function trackRedditPurchase({
+  conversionId,
+  ip,
+  userAgent,
+  email,
+}: TrackPurchaseOptions): Promise<void> {
   const token = process.env.REDDIT_CONVERSION_TOKEN
   if (!token) return
+
+  const hashedEmail = email
+    ? createHash('sha256').update(email.toLowerCase().trim()).digest('hex')
+    : undefined
 
   await fetch(CAPI_URL, {
     method: 'POST',
@@ -17,7 +35,23 @@ export async function trackRedditPurchase(conversionId: string): Promise<void> {
           event_at: new Date().toISOString(),
           event_type: { tracking_type: 'Purchase' },
           conversion_id: conversionId,
-          user: {},
+          user: {
+            ...(ip && { ip_address: ip }),
+            ...(userAgent && { user_agent: userAgent }),
+            ...(hashedEmail && { email: hashedEmail }),
+          },
+          metadata: {
+            currency: 'CAD',
+            value: 19.00,
+            conversion_id: conversionId,
+            products: [
+              {
+                id: 'tenantiq_pro',
+                name: 'TenantIQ Pro',
+                category: 'SaaS Subscription',
+              },
+            ],
+          },
         },
       ],
     }),
