@@ -34,7 +34,7 @@ export async function trackRedditPurchase({
         {
           event_at: new Date().toISOString(),
           event_type: { tracking_type: 'Purchase' },
-          conversion_id: conversionId,
+conversion_id: conversionId,
           user: {
             ...(ip && { ip_address: ip }),
             ...(userAgent && { user_agent: userAgent }),
