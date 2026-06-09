@@ -68,7 +68,7 @@ export default function LandingPage() {
           style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)' }}
         />
 
-        <div className="relative max-w-4xl mx-auto px-5 sm:px-8 pt-12 sm:pt-24 pb-12 sm:pb-20 text-center">
+        <div className="relative max-w-4xl mx-auto px-5 sm:px-8 pt-16 sm:pt-24 pb-14 sm:pb-20 text-center">
 
           {/* Trust badge */}
           <div
@@ -132,7 +132,7 @@ export default function LandingPage() {
 
           {/* Stats — 3 across on mobile at 390px */}
           <div
-            className="flex items-center justify-center gap-6 sm:gap-14 mt-10 pt-10"
+            className="flex items-center justify-center gap-4 sm:gap-14 mt-10 pt-10"
             style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
           >
             {[
@@ -140,11 +140,11 @@ export default function LandingPage() {
               { value: '8,500+', label: 'Screenings', color: '#A78BFA' },
               { value: '< 2 min', label: 'Per applicant', color: '#34D399' },
             ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-xl sm:text-3xl font-extrabold mb-0.5" style={{ color: stat.color }}>
+              <div key={stat.label} className="text-center flex-1">
+                <div className="text-lg sm:text-3xl font-extrabold mb-0.5" style={{ color: stat.color }}>
                   {stat.value}
                 </div>
-                <div className="text-[11px] sm:text-sm text-slate-500 whitespace-nowrap">{stat.label}</div>
+                <div className="text-[10px] sm:text-sm text-slate-500 whitespace-nowrap">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -347,7 +347,7 @@ export default function LandingPage() {
                   background: 'rgba(255,255,255,0.06)',
                   border: '1px solid rgba(255,255,255,0.1)',
                   color: '#CBD5E1',
-                  minHeight: '48px',
+                  minHeight: '56px',
                 }}
               >
                 Start for free — no card needed
@@ -398,7 +398,7 @@ export default function LandingPage() {
                 style={{
                   background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
                   boxShadow: '0 0 20px rgba(59,130,246,0.4)',
-                  minHeight: '48px',
+                  minHeight: '56px',
                 }}
               >
                 Start with Pro

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import Script from 'next/script'
 import './globals.css'
 
 // next/font self-hosts Inter from Vercel's CDN — no external network request,
@@ -22,9 +23,18 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable} style={{ colorScheme: 'dark' }}>
-      <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18214503686" />
-        <script
+      <body className="antialiased" style={{ background: '#0A0F1E', color: '#F1F5F9' }}>
+        {children}
+        <Analytics />
+
+        {/* Google Ads — afterInteractive keeps these off the critical path */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18214503686"
+          strategy="afterInteractive"
+        />
+        <Script
+          id="google-tag-init"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
@@ -34,15 +44,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
-        <script
+
+        {/* Reddit Pixel */}
+        <Script
+          id="reddit-pixel"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `!function(w,d){if(!w.rdt){var p=w.rdt=function(){p.sendEvent?p.sendEvent.apply(p,arguments):p.callQueue.push(arguments)};p.callQueue=[];var t=d.createElement("script");t.src="https://www.redditstatic.com/ads/pixel.js?pixel_id=a2_j49bo24fm64b",t.async=!0;var s=d.getElementsByTagName("script")[0];s.parentNode.insertBefore(t,s)}}(window,document);rdt('init','a2_j49bo24fm64b');rdt('track', 'PageVisit');`,
           }}
         />
-      </head>
-      <body className="antialiased" style={{ background: '#0A0F1E', color: '#F1F5F9' }}>
-        {children}
-        <Analytics />
       </body>
     </html>
   )
