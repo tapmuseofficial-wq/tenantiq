@@ -20,13 +20,15 @@ export default async function DashboardPage({
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (params.upgraded === 'true') {
+  const isPurchase = params.upgraded === 'true'
+  const conversionId = isPurchase ? crypto.randomUUID() : undefined
+
+  if (isPurchase && conversionId) {
     const reqHeaders = await headers()
     const ip = reqHeaders.get('x-forwarded-for')?.split(',')[0].trim()
       ?? reqHeaders.get('x-real-ip')
       ?? undefined
     const userAgent = reqHeaders.get('user-agent') ?? undefined
-    const conversionId = Math.random().toString(36).substring(2, 15)
     await trackRedditPurchase({
       conversionId,
       ip,
@@ -60,7 +62,7 @@ export default async function DashboardPage({
     <div className="space-y-8">
       {/* Fires the Google Ads conversion event when ?upgraded=true is present */}
       <Suspense fallback={null}>
-        <ConversionTracker />
+        <ConversionTracker conversionId={conversionId} />
       </Suspense>
 
       {/* Header */}
