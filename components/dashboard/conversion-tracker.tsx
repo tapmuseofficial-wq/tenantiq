@@ -16,6 +16,11 @@ export function ConversionTracker() {
         transaction_id: '',
       })
     }
+
+    // Reddit Purchase conversion — rdt is defined globally by the Reddit pixel in layout.tsx
+    if (typeof (window as any).rdt === 'function') {
+      ;(window as any).rdt('track', 'Purchase')
+    }
   }, [searchParams])
 
   return null
