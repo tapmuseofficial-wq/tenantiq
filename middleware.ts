@@ -62,5 +62,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/|apply/).*)'],
+  // Only run auth middleware on routes that actually need it.
+  // Public routes (/, /apply/*, /api/*) are intentionally excluded so they
+  // are never delayed by the Supabase auth round-trip.
+  matcher: ['/dashboard/:path*', '/login', '/signup'],
 }
