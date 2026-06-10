@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import Script from 'next/script'
 import './globals.css'
 
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased" style={{ background: '#0A0F1E', color: '#F1F5F9' }}>
         {children}
         <Analytics />
+        <SpeedInsights />
 
         {/* Google Ads — afterInteractive keeps these off the critical path */}
         <Script
