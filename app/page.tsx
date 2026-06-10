@@ -80,7 +80,7 @@ export default function LandingPage() {
             }}
           >
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            Trusted by landlords in Canada &amp; USA
+            Trusted by landlords in Canada, USA &amp; UK
           </div>
 
           {/* Headline — 40px on mobile (above 36px minimum), scales up on larger screens */}
@@ -93,8 +93,9 @@ export default function LandingPage() {
 
           {/* Subheadline — 17px on mobile, generous line-height */}
           <p className="text-[17px] leading-relaxed sm:text-xl text-slate-400 max-w-xl mx-auto mb-7">
-            Share a link, your applicant fills a quick form, and TenantIQ instantly
-            gives you AI-verified income, a 0–100 score, and a clear recommendation.
+            Share a link, your applicant fills a quick form, and TenantIQ gives you
+            AI-verified income, reference checks, a 0–100 score, and a clear approve or
+            decline — before a bad tenant costs you thousands in unpaid rent or eviction fees.
           </p>
 
           {/* "Free to try" trust badge */}
@@ -271,8 +272,8 @@ export default function LandingPage() {
               },
               {
                 icon: ShieldCheck,
-                title: 'Instant PDF Reports',
-                desc: 'Download a professional screening report to keep on file.',
+                title: 'Reference & Eviction Check',
+                desc: 'Flags prior evictions, late payments, and collects employer and landlord references automatically.',
                 gradient: 'linear-gradient(135deg, #F59E0B, #EF4444)',
               },
             ].map((f) => (
@@ -374,6 +375,7 @@ export default function LandingPage() {
                 <div className="flex items-baseline gap-2">
                   <span className="text-5xl font-extrabold text-slate-100">$19</span>
                   <span className="text-slate-400 text-sm">/month</span>
+                  <span className="text-slate-600 text-sm">· ~£15</span>
                 </div>
                 <p className="text-sm text-slate-400 mt-1.5">For active landlords</p>
               </div>
@@ -428,9 +430,9 @@ export default function LandingPage() {
                 role: "Landlord, Vancouver",
               },
               {
-                quote: "The side-by-side comparison saved me from a bad decision. The score breakdown told me exactly why.",
-                author: "Jennifer L.",
-                role: "Investor, New York",
+                quote: "After a nightmare eviction that cost me £6,000 and eight months of stress, TenantIQ paid for itself on the very first screening.",
+                author: "James W.",
+                role: "Landlord, Manchester",
               },
             ].map((t) => (
               <div
@@ -470,7 +472,7 @@ export default function LandingPage() {
             Ready to find your perfect tenant?
           </h2>
           <p className="text-slate-400 mb-7 text-sm sm:text-base">
-            Join 1,200+ landlords across Canada &amp; USA screening smarter.
+            Join 1,200+ landlords across Canada, USA &amp; UK screening smarter.
           </p>
           <div className="flex flex-col items-center gap-3">
             <Link

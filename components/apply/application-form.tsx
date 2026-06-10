@@ -229,7 +229,7 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
         <div className="space-y-4">
           <Input label="Full Name" placeholder="Jane Smith" {...register('full_name')} error={errors.full_name?.message} />
           <Input label="Email Address" type="email" placeholder="jane@email.com" {...register('email')} error={errors.email?.message} />
-          <Input label="Phone Number" type="tel" placeholder="(416) 555-0123" {...register('phone')} error={errors.phone?.message} />
+          <Input label="Phone Number" type="tel" placeholder="e.g., 07700 900123 or +1 (416) 555-0123" {...register('phone')} error={errors.phone?.message} />
         </div>
       )}
 
@@ -240,7 +240,7 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
             label="Monthly Income (before tax)"
             type="number"
             placeholder="4500"
-            hint="Enter your gross monthly income in dollars"
+            hint="Enter your gross monthly income (before tax)"
             {...register('monthly_income_reported', { valueAsNumber: true })}
             error={errors.monthly_income_reported?.message}
           />
@@ -341,7 +341,7 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
             <div className="space-y-3">
               <Input label="Full Name" placeholder="John Doe" {...register('reference_1_name')} error={errors.reference_1_name?.message} />
               <Input label="Relationship to You" placeholder="e.g., Previous landlord, Manager" {...register('reference_1_relationship')} error={errors.reference_1_relationship?.message} />
-              <Input label="Phone Number" type="tel" placeholder="(416) 555-0100" {...register('reference_1_phone')} error={errors.reference_1_phone?.message} />
+              <Input label="Phone Number" type="tel" placeholder="e.g., 07700 900100" {...register('reference_1_phone')} error={errors.reference_1_phone?.message} />
             </div>
           </div>
 
@@ -353,7 +353,7 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
             <div className="space-y-3">
               <Input label="Full Name" placeholder="Jane Doe" {...register('reference_2_name')} error={errors.reference_2_name?.message} />
               <Input label="Relationship to You" placeholder="e.g., Previous landlord, Manager" {...register('reference_2_relationship')} error={errors.reference_2_relationship?.message} />
-              <Input label="Phone Number" type="tel" placeholder="(416) 555-0200" {...register('reference_2_phone')} error={errors.reference_2_phone?.message} />
+              <Input label="Phone Number" type="tel" placeholder="e.g., 07700 900200" {...register('reference_2_phone')} error={errors.reference_2_phone?.message} />
             </div>
           </div>
         </div>
