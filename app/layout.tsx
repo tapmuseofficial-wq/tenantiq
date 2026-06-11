@@ -31,21 +31,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Google Ads — afterInteractive keeps these off the critical path */}
         <Script
+          strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=AW-18214503686"
-          strategy="afterInteractive"
         />
-        <Script
-          id="google-tag-init"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'AW-18214503686');
-            `,
-          }}
-        />
+        <Script strategy="afterInteractive" id="google-tag">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-18214503686');
+          `}
+        </Script>
 
         {/* Reddit Pixel */}
         <Script
