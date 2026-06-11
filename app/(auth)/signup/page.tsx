@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,7 +9,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { AlertCircle, Mail } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 const schema = z.object({
   full_name: z.string().min(2, 'Please enter your name'),
@@ -38,8 +39,8 @@ function friendlyError(message: string): { text: string; showSignIn: boolean } {
 }
 
 export default function SignupPage() {
+  const router = useRouter()
   const [error, setError] = useState<{ text: string; showSignIn: boolean } | null>(null)
-  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -91,48 +92,7 @@ export default function SignupPage() {
       return
     }
 
-    setSubmittedEmail(data.email)
-  }
-
-  if (submittedEmail) {
-    return (
-      <div className="w-full max-w-sm">
-        <div
-          className="rounded-2xl p-8 text-center"
-          style={{
-            background: 'rgba(15,22,41,0.8)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            backdropFilter: 'blur(24px)',
-            boxShadow: '0 4px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
-          }}
-        >
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
-            style={{
-              background: 'rgba(16,185,129,0.15)',
-              border: '1px solid rgba(16,185,129,0.3)',
-              boxShadow: '0 0 30px rgba(16,185,129,0.15)',
-            }}
-          >
-            <Mail className="w-8 h-8 text-emerald-400" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-100 mb-2">Check your email</h3>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            We sent a confirmation link to{' '}
-            <span className="font-semibold text-slate-300">{submittedEmail}</span>.
-            Click the link to confirm your account and start screening tenants.
-          </p>
-          <p className="text-xs text-slate-600 mt-4">Didn&apos;t get it? Check your spam folder.</p>
-        </div>
-
-        <p className="text-center text-sm text-slate-500 mt-6">
-          Already confirmed?{' '}
-          <Link href="/login" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    )
+    router.push('/dashboard')
   }
 
   return (
