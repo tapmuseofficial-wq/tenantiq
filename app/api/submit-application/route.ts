@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { runAnalysis } from '@/lib/analyze'
+import { sendNewApplicationEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Verify the property exists and is active
     const { data: property, error: propError } = await supabase
       .from('properties')
-      .select('id, landlord_id, monthly_rent, is_active')
+      .select('id, name, landlord_id, monthly_rent, is_active')
       .eq('screening_token', screening_token)
       .single()
 
@@ -133,6 +134,17 @@ export async function POST(request: NextRequest) {
       .from('profiles')
       .update({ screenings_used: (profile?.screenings_used ?? 0) + 1 })
       .eq('id', property.landlord_id)
+
+    // Notify the landlord — non-blocking, failure must not affect the tenant's submission
+    const tenantName = formData.get('full_name') as string
+    const { data: landlordAuth } = await supabase.auth.admin.getUserById(property.landlord_id)
+    if (landlordAuth.user?.email) {
+      sendNewApplicationEmail({
+        landlordEmail: landlordAuth.user.email,
+        tenantName,
+        propertyName: property.name,
+      }).catch(() => {})
+    }
 
     // Await the analysis before returning. Fire-and-forget is not reliable on
     // Vercel — the function can be terminated as soon as the response is sent,
