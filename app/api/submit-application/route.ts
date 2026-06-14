@@ -2,8 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { runAnalysis } from '@/lib/analyze'
 import { sendNewApplicationEmail } from '@/lib/email'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 10 submissions per IP per hour
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown'
+  const { allowed, resetAt } = checkRateLimit(ip, 10, 60 * 60 * 1000)
+  if (!allowed) {
+    return NextResponse.json(
+      { error: 'Too many submissions. Please try again later.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil((resetAt - Date.now()) / 1000)) },
+      }
+    )
+  }
+
   try {
     const formData = await request.formData()
     const supabase = createServiceClient()
@@ -54,7 +71,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 400 })
       }
 
-      // Validate and normalise MIME type — browser may omit type (e.g. PDFs on Windows)
+      // Derive MIME type from the file extension — never trust documentFile.type
+      // because it is client-supplied and trivially spoofed.
       const ALLOWED: Record<string, string> = {
         pdf: 'application/pdf',
         jpg: 'image/jpeg',
@@ -62,9 +80,9 @@ export async function POST(request: NextRequest) {
         png: 'image/png',
       }
       const fileExt = documentFile.name.split('.').pop()?.toLowerCase() ?? ''
-      const contentType = documentFile.type || ALLOWED[fileExt] || ''
+      const contentType = ALLOWED[fileExt]
 
-      if (!Object.values(ALLOWED).includes(contentType)) {
+      if (!contentType) {
         return NextResponse.json(
           { error: 'Invalid file type. Please upload a PDF, JPG, or PNG.' },
           { status: 400 }
