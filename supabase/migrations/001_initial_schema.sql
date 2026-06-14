@@ -188,7 +188,9 @@ create policy "Anyone can upload income documents"
 -- ============================================================
 
 -- Application summary view for dashboard
-create or replace view public.application_summaries as
+create or replace view public.application_summaries
+  with (security_invoker = true)
+as
 select
   a.id,
   a.property_id,
