@@ -8,7 +8,12 @@
       "Bash(npx next *)",
       "Bash(npm run *)",
       "Bash(grep *)",
-      "Bash(vercel env *)"
+      "Bash(vercel env *)",
+      "Bash(curl -s http://localhost:3001)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(node *)",
+      "Bash(npx supabase *)",
+      "Bash(npx playwright *)"
     ]
   }
 }

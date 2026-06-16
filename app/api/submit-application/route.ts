@@ -152,7 +152,14 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (appError || !application) {
-      console.error('Application insert error:', appError)
+      console.error('[submit] Application insert failed:', {
+        code: appError?.code,
+        message: appError?.message,
+        details: appError?.details,
+      })
+      if (appError?.code === 'PGRST204') {
+        console.error('[submit] Column missing — run migration 004_add_pets.sql in the Supabase SQL editor')
+      }
       return NextResponse.json({ error: 'Failed to save application' }, { status: 500 })
     }
 

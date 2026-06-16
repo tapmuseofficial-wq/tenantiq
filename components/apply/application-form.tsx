@@ -270,7 +270,10 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
                 <button
                   key={String(opt.value)}
                   type="button"
-                  onClick={() => setValue('has_evictions', opt.value, { shouldValidate: true })}
+                  onClick={() => {
+                    setValue('has_evictions', opt.value, { shouldValidate: true })
+                    if (!opt.value) setValue('eviction_explanation', '')
+                  }}
                   className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 text-sm font-medium"
                   style={hasEvictions === opt.value ? {
                     background: 'rgba(59,130,246,0.15)',
@@ -303,7 +306,10 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
                 <button
                   key={String(opt.value)}
                   type="button"
-                  onClick={() => setValue('has_late_payments', opt.value, { shouldValidate: true })}
+                  onClick={() => {
+                    setValue('has_late_payments', opt.value, { shouldValidate: true })
+                    if (!opt.value) setValue('late_payment_explanation', '')
+                  }}
                   className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 text-sm font-medium"
                   style={hasLatePayments === opt.value ? {
                     background: 'rgba(59,130,246,0.15)',
@@ -336,7 +342,10 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
                 <button
                   key={String(opt.value)}
                   type="button"
-                  onClick={() => setValue('has_pets', opt.value, { shouldValidate: true })}
+                  onClick={() => {
+                    setValue('has_pets', opt.value, { shouldValidate: true })
+                    if (!opt.value) setValue('pet_details', '')
+                  }}
                   className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 text-sm font-medium"
                   style={hasPets === opt.value ? {
                     background: 'rgba(59,130,246,0.15)',
