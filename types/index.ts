@@ -1,4 +1,4 @@
-export type SubscriptionStatus = 'free' | 'pro'
+export type SubscriptionStatus = 'free' | 'basic'
 export type VerificationStatus = 'verified' | 'unverified' | 'discrepancy' | 'no_document'
 export type Recommendation = 'approve' | 'review' | 'decline'
 export type ApplicationStatus = 'pending' | 'analyzing' | 'complete' | 'error'
@@ -12,6 +12,7 @@ export interface Profile {
   stripe_customer_id: string | null
   stripe_subscription_id: string | null
   screenings_used: number
+  screening_credits: number
   created_at: string
   updated_at: string
 }

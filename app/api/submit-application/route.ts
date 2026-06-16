@@ -48,13 +48,20 @@ export async function POST(request: NextRequest) {
     // Check landlord screening limit
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_status, screenings_used')
+      .select('subscription_status, screenings_used, screening_credits')
       .eq('id', property.landlord_id)
       .single()
 
     if (profile?.subscription_status === 'free' && (profile?.screenings_used ?? 0) >= 3) {
       return NextResponse.json(
         { error: 'This landlord has reached their free plan limit' },
+        { status: 402 }
+      )
+    }
+
+    if (profile?.subscription_status === 'basic' && (profile?.screening_credits ?? 0) <= 0) {
+      return NextResponse.json(
+        { error: 'This landlord has no screening credits remaining' },
         { status: 402 }
       )
     }
@@ -147,11 +154,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save application' }, { status: 500 })
     }
 
-    // Increment screenings_used for landlord
-    await supabase
-      .from('profiles')
-      .update({ screenings_used: (profile?.screenings_used ?? 0) + 1 })
-      .eq('id', property.landlord_id)
+    // Deduct from the appropriate counter
+    if (profile?.subscription_status === 'basic') {
+      await supabase
+        .from('profiles')
+        .update({ screening_credits: Math.max(0, (profile.screening_credits ?? 0) - 1) })
+        .eq('id', property.landlord_id)
+    } else {
+      await supabase
+        .from('profiles')
+        .update({ screenings_used: (profile?.screenings_used ?? 0) + 1 })
+        .eq('id', property.landlord_id)
+    }
 
     // Notify the landlord — non-blocking, failure must not affect the tenant's submission
     const tenantName = formData.get('full_name') as string

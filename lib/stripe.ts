@@ -6,25 +6,23 @@ export const PLANS = {
   free: {
     name: 'Free',
     price: 0,
-    screenings: 3,
+    credits: 3,
     features: [
-      '3 tenant screenings',
+      '3 total screenings',
       'AI income verification',
       'Smart scoring (out of 100)',
       'PDF reports',
     ],
   },
-  pro: {
-    name: 'Pro',
-    price: 19,
-    screenings: Infinity,
+  basic: {
+    name: 'Basic',
+    price: 9,
+    credits: 10,
     features: [
-      'Unlimited screenings',
+      '10 screening credits',
       'AI income verification',
       'Smart scoring (out of 100)',
-      'Side-by-side comparison',
       'PDF reports',
-      'Priority support',
     ],
   },
 }

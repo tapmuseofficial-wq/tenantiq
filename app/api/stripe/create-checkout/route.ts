@@ -45,12 +45,12 @@ async function createFreshCustomer(
 }
 
 export async function POST(request: NextRequest) {
-  const priceId = process.env.STRIPE_PRO_PRICE_ID
+  const priceId = process.env.STRIPE_BASIC_PRICE_ID
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
 
   if (!priceId) {
-    console.error('[checkout] missing env var: STRIPE_PRO_PRICE_ID')
-    return NextResponse.json({ error: 'Server misconfiguration: STRIPE_PRO_PRICE_ID is not set' }, { status: 500 })
+    console.error('[checkout] missing env var: STRIPE_BASIC_PRICE_ID')
+    return NextResponse.json({ error: 'Server misconfiguration: STRIPE_BASIC_PRICE_ID is not set' }, { status: 500 })
   }
   if (!appUrl) {
     console.error('[checkout] missing env var: NEXT_PUBLIC_APP_URL')
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      mode: 'subscription',
+      mode: 'payment',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${appUrl}/dashboard?upgraded=true`,

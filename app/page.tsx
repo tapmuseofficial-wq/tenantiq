@@ -129,7 +129,7 @@ export default function LandingPage() {
             </Link>
             <p className="flex items-center gap-1.5 text-sm text-slate-500">
               <Lock className="w-3.5 h-3.5 flex-shrink-0" />
-              3 free screenings · No subscription needed
+              3 free screenings · No credit card needed
             </p>
           </div>
 
@@ -315,7 +315,7 @@ export default function LandingPage() {
             <h2 className="text-[28px] leading-tight sm:text-4xl font-bold text-slate-100 mb-2">
               Simple, transparent pricing
             </h2>
-            <p className="text-slate-400 text-sm sm:text-base">Start free. Upgrade only when you need unlimited.</p>
+            <p className="text-slate-400 text-sm sm:text-base">Start free. Need more? Get 10 credits for a one-time $9.</p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
@@ -331,12 +331,11 @@ export default function LandingPage() {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Free</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-5xl font-extrabold text-slate-100">$0</span>
-                  <span className="text-slate-500 text-sm">/month</span>
                 </div>
                 <p className="text-sm text-emerald-400 mt-1.5 font-medium">No credit card required</p>
               </div>
               <ul className="space-y-2.5 mb-6">
-                {['3 tenant screenings', 'AI income verification', 'Smart scoring', 'PDF reports'].map((f) => (
+                {['3 total screenings', 'AI income verification', 'Smart scoring (0–100)', 'PDF reports'].map((f) => (
                   <li key={f} className="flex items-center gap-2.5 text-sm text-slate-400">
                     <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                     {f}
@@ -357,7 +356,7 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Pro */}
+            {/* Basic */}
             <div
               className="rounded-2xl p-6 sm:p-7 relative overflow-hidden"
               style={{
@@ -370,25 +369,22 @@ export default function LandingPage() {
                 className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-xs font-bold"
                 style={{ background: 'linear-gradient(135deg, #F59E0B, #EF4444)', color: 'white' }}
               >
-                MOST POPULAR
+                ONE-TIME
               </div>
               <div className="mb-5">
-                <p className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Pro</p>
+                <p className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Basic</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extrabold text-slate-100">$19</span>
-                  <span className="text-slate-400 text-sm">/month</span>
-                  <span className="text-slate-600 text-sm">· ~£15</span>
+                  <span className="text-5xl font-extrabold text-slate-100">$9</span>
+                  <span className="text-slate-400 text-sm">one-time</span>
                 </div>
-                <p className="text-sm text-slate-400 mt-1.5">For active landlords</p>
+                <p className="text-sm text-slate-400 mt-1.5">10 screening credits, never expires</p>
               </div>
               <ul className="space-y-2.5 mb-6">
                 {[
-                  'Unlimited screenings',
+                  '10 screening credits',
                   'AI income verification',
                   'Smart scoring (0–100)',
-                  'Side-by-side comparison',
                   'PDF reports',
-                  'Priority support',
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2.5 text-sm text-slate-300">
                     <CheckCircle className="w-4 h-4 text-blue-400 flex-shrink-0" />
@@ -405,7 +401,7 @@ export default function LandingPage() {
                   minHeight: '56px',
                 }}
               >
-                Start with Pro
+                Get 10 credits — $9
               </CheckoutButton>
             </div>
           </div>

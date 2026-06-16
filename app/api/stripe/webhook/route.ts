@@ -3,6 +3,8 @@ import { stripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 
+const BASIC_PLAN_CREDITS = 10
+
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')
@@ -28,112 +30,62 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient()
 
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.Checkout.Session
-      const userId = session.metadata?.supabase_user_id
-      const subscriptionId = session.subscription as string
-      // The email the customer used during checkout — the most reliable signal
-      // of who actually paid, independent of metadata.
-      const stripeEmail = session.customer_details?.email?.toLowerCase().trim()
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session
+    const userId = session.metadata?.supabase_user_id
+    const stripeEmail = session.customer_details?.email?.toLowerCase().trim()
 
-      if (!userId || !subscriptionId) {
-        console.error('[webhook] checkout.session.completed: missing metadata', {
-          sessionId: session.id,
-          hasUserId: !!userId,
-          hasSubscriptionId: !!subscriptionId,
-        })
-        break
-      }
-
-      // Verify the user exists in our database before upgrading anything.
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .eq('id', userId)
-        .single()
-
-      if (profileError || !profile) {
-        console.error('[webhook] checkout.session.completed: user not found in database', {
-          userId,
-          sessionId: session.id,
-          error: profileError?.message,
-        })
-        break
-      }
-
-      // Verify the Stripe customer email matches the account being upgraded.
-      // This prevents a metadata mismatch from silently upgrading the wrong user.
-      const profileEmail = profile.email?.toLowerCase().trim()
-      if (stripeEmail && profileEmail && stripeEmail !== profileEmail) {
-        console.error('[webhook] checkout.session.completed: email mismatch — aborting upgrade', {
-          userId,
-          sessionId: session.id,
-          stripeEmail,
-          profileEmail,
-        })
-        break
-      }
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          subscription_status: 'pro',
-          stripe_subscription_id: subscriptionId,
-        })
-        .eq('id', userId)
-
-      if (updateError) {
-        console.error('[webhook] checkout.session.completed: failed to upgrade user', {
-          userId,
-          sessionId: session.id,
-          error: updateError.message,
-        })
-      } else {
-        console.log(`[webhook] user upgraded to pro — userId=${userId} subscriptionId=${subscriptionId}`)
-      }
-      break
+    if (!userId) {
+      console.error('[webhook] checkout.session.completed: missing supabase_user_id in metadata', {
+        sessionId: session.id,
+      })
+      return NextResponse.json({ received: true })
     }
 
-    case 'customer.subscription.deleted': {
-      const subscription = event.data.object as Stripe.Subscription
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          subscription_status: 'free',
-          stripe_subscription_id: null,
-        })
-        .eq('stripe_subscription_id', subscription.id)
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, email, screening_credits')
+      .eq('id', userId)
+      .single()
 
-      if (error) {
-        console.error('[webhook] customer.subscription.deleted: update failed', {
-          subscriptionId: subscription.id,
-          error: error.message,
-        })
-      } else {
-        console.log(`[webhook] subscription cancelled — subscriptionId=${subscription.id}`)
-      }
-      break
+    if (profileError || !profile) {
+      console.error('[webhook] checkout.session.completed: user not found', {
+        userId,
+        sessionId: session.id,
+        error: profileError?.message,
+      })
+      return NextResponse.json({ received: true })
     }
 
-    case 'customer.subscription.updated': {
-      const subscription = event.data.object as Stripe.Subscription
-      const status = subscription.status === 'active' ? 'pro' : 'free'
-      const { error } = await supabase
-        .from('profiles')
-        .update({ subscription_status: status })
-        .eq('stripe_subscription_id', subscription.id)
+    const profileEmail = profile.email?.toLowerCase().trim()
+    if (stripeEmail && profileEmail && stripeEmail !== profileEmail) {
+      console.error('[webhook] checkout.session.completed: email mismatch — aborting', {
+        userId,
+        sessionId: session.id,
+        stripeEmail,
+        profileEmail,
+      })
+      return NextResponse.json({ received: true })
+    }
 
-      if (error) {
-        console.error('[webhook] customer.subscription.updated: update failed', {
-          subscriptionId: subscription.id,
-          status,
-          error: error.message,
-        })
-      } else {
-        console.log(`[webhook] subscription updated — subscriptionId=${subscription.id} status=${status}`)
-      }
-      break
+    const newCredits = (profile.screening_credits ?? 0) + BASIC_PLAN_CREDITS
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        subscription_status: 'basic',
+        screening_credits: newCredits,
+      })
+      .eq('id', userId)
+
+    if (updateError) {
+      console.error('[webhook] checkout.session.completed: failed to add credits', {
+        userId,
+        sessionId: session.id,
+        error: updateError.message,
+      })
+    } else {
+      console.log(`[webhook] basic plan activated — userId=${userId} credits=${newCredits}`)
     }
   }
 
