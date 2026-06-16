@@ -63,6 +63,8 @@ export interface Application {
   eviction_explanation: string | null
   has_late_payments: boolean
   late_payment_explanation: string | null
+  has_pets: boolean
+  pet_details: string | null
   reference_1_name: string | null
   reference_1_relationship: string | null
   reference_1_phone: string | null

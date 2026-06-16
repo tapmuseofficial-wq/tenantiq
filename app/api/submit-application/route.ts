@@ -131,6 +131,8 @@ export async function POST(request: NextRequest) {
       eviction_explanation: formData.get('eviction_explanation') as string | null || null,
       has_late_payments: formData.get('has_late_payments') === 'true',
       late_payment_explanation: formData.get('late_payment_explanation') as string | null || null,
+      has_pets: formData.get('has_pets') === 'true',
+      pet_details: formData.get('pet_details') as string | null || null,
       reference_1_name: formData.get('reference_1_name') as string | null || null,
       reference_1_relationship: formData.get('reference_1_relationship') as string | null || null,
       reference_1_phone: formData.get('reference_1_phone') as string | null || null,

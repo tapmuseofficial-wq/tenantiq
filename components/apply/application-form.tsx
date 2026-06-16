@@ -31,6 +31,8 @@ const schema = z.object({
   eviction_explanation: z.string().optional(),
   has_late_payments: z.boolean(),
   late_payment_explanation: z.string().optional(),
+  has_pets: z.boolean(),
+  pet_details: z.string().optional(),
   reference_1_name: z.string().min(2, 'Reference name is required'),
   reference_1_relationship: z.string().min(2, 'Relationship is required'),
   reference_1_phone: z.string().min(10, 'Phone number is required'),
@@ -83,16 +85,17 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
   } = useForm<FormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as any,
-    defaultValues: { has_evictions: false, has_late_payments: false },
+    defaultValues: { has_evictions: false, has_late_payments: false, has_pets: false },
   })
 
   const hasEvictions = watch('has_evictions')
   const hasLatePayments = watch('has_late_payments')
+  const hasPets = watch('has_pets')
 
   const stepFields: Record<number, (keyof FormData)[]> = {
     1: ['full_name', 'email', 'phone'],
     2: ['monthly_income_reported', 'employer_name', 'time_at_job', 'reason_for_moving'],
-    3: ['has_evictions', 'has_late_payments'],
+    3: ['has_evictions', 'has_late_payments', 'has_pets'],
     4: ['reference_1_name', 'reference_1_relationship', 'reference_1_phone'],
     5: [],
   }
@@ -320,6 +323,43 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
             </div>
             {hasLatePayments && (
               <Textarea label="Please explain" placeholder="Provide details about the late payments..." {...register('late_payment_explanation')} error={errors.late_payment_explanation?.message} />
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-slate-300">Do you have any pets?</label>
+            <div className="grid grid-cols-2 gap-3">
+              {[{ value: false, label: 'No' }, { value: true, label: 'Yes' }].map((opt) => (
+                <label
+                  key={String(opt.value)}
+                  className="flex items-center justify-center p-3 rounded-xl cursor-pointer transition-all duration-200 text-sm font-medium"
+                  style={hasPets === opt.value ? {
+                    background: 'rgba(59,130,246,0.15)',
+                    border: '2px solid rgba(59,130,246,0.4)',
+                    color: '#60A5FA',
+                  } : {
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: '#64748B',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    className="sr-only"
+                    value={String(opt.value)}
+                    {...register('has_pets', { setValueAs: (v) => v === 'true' })}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+            {hasPets && (
+              <Textarea
+                label="Please describe your pets"
+                placeholder="e.g., 1 golden retriever, 2 cats"
+                {...register('pet_details')}
+                error={errors.pet_details?.message}
+              />
             )}
           </div>
         </div>

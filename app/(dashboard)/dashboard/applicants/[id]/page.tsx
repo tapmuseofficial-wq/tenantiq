@@ -314,6 +314,21 @@ export default async function ApplicantDetailPage({ params }: { params: { id: st
                 <p className="text-xs text-slate-400 ml-6 leading-relaxed">{app.late_payment_explanation}</p>
               )}
             </div>
+            <div>
+              <div className="flex items-center gap-2.5 mb-1.5">
+                {app.has_pets
+                  ? <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  : <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
+                <p className="text-sm font-semibold text-slate-200">
+                  Pets: <span className={app.has_pets ? 'text-amber-400' : 'text-emerald-400'}>
+                    {app.has_pets ? 'Yes' : 'None'}
+                  </span>
+                </p>
+              </div>
+              {app.has_pets && app.pet_details && (
+                <p className="text-xs text-slate-400 ml-6 leading-relaxed">{app.pet_details}</p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
