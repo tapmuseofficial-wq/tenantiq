@@ -13,9 +13,26 @@ const inter = Inter({
   display: 'swap',
 })
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tenantiq.ca'
+
 export const metadata: Metadata = {
-  title: 'TenantIQ — AI-Powered Tenant Screening',
-  description: 'Screen tenants faster and smarter with AI income verification and smart scoring.',
+  metadataBase: new URL(APP_URL),
+  title: 'TenantIQ — AI Tenant Screening for Landlords',
+  description: 'Score rental applicants out of 100, verify income documents automatically, and catch fake pay stubs. Free to try.',
+  openGraph: {
+    type: 'website',
+    url: APP_URL,
+    siteName: 'TenantIQ',
+    title: 'TenantIQ — AI Tenant Screening for Landlords',
+    description: 'Score rental applicants out of 100, verify income documents automatically, and catch fake pay stubs. Free to try.',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'TenantIQ — AI Tenant Screening for Landlords' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'TenantIQ — AI Tenant Screening for Landlords',
+    description: 'Score rental applicants out of 100, verify income documents automatically, and catch fake pay stubs. Free to try.',
+    images: ['/opengraph-image'],
+  },
   verification: {
     google: 'HmzMtboNghZP9fLmef8bTi27Pf8Y6NzsP3K295JefmQ',
   },

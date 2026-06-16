@@ -495,7 +495,7 @@ export default function LandingPage() {
 
       {/* ── Footer ───────────────────────────────────────────── */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-8">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -505,9 +505,12 @@ export default function LandingPage() {
             </div>
             <span className="font-bold text-slate-400 text-sm">TenantIQ</span>
           </div>
-          <p className="text-xs text-slate-600">
-            © {new Date().getFullYear()} TenantIQ. All rights reserved.
-          </p>
+          <div className="flex items-center gap-5 text-xs text-slate-500">
+            <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
+            <span className="text-slate-700">·</span>
+            <span>© {new Date().getFullYear()} TenantIQ. All rights reserved.</span>
+          </div>
         </div>
       </footer>
 
