@@ -81,6 +81,7 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
     handleSubmit,
     watch,
     trigger,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -263,12 +264,14 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
       {step === 3 && (
         <div className="space-y-6">
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-slate-300">Have you ever been evicted?</label>
+            <p className="text-sm font-medium text-slate-300">Have you ever been evicted?</p>
             <div className="grid grid-cols-2 gap-3">
-              {[{ value: false, label: 'No, never' }, { value: true, label: 'Yes' }].map((opt) => (
-                <label
+              {([{ value: false, label: 'No, never' }, { value: true, label: 'Yes' }] as const).map((opt) => (
+                <button
                   key={String(opt.value)}
-                  className="flex items-center justify-center p-3 rounded-xl cursor-pointer transition-all duration-200 text-sm font-medium"
+                  type="button"
+                  onClick={() => setValue('has_evictions', opt.value, { shouldValidate: true })}
+                  className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 text-sm font-medium"
                   style={hasEvictions === opt.value ? {
                     background: 'rgba(59,130,246,0.15)',
                     border: '2px solid rgba(59,130,246,0.4)',
@@ -279,28 +282,29 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
                     color: '#64748B',
                   }}
                 >
-                  <input
-                    type="radio"
-                    className="sr-only"
-                    value={String(opt.value)}
-                    {...register('has_evictions', { setValueAs: (v) => v === 'true' })}
-                  />
                   {opt.label}
-                </label>
+                </button>
               ))}
             </div>
             {hasEvictions && (
-              <Textarea label="Please explain" placeholder="Provide details about the eviction..." {...register('eviction_explanation')} error={errors.eviction_explanation?.message} />
+              <Textarea
+                label="Please explain"
+                placeholder="Provide details about the eviction..."
+                {...register('eviction_explanation')}
+                error={errors.eviction_explanation?.message}
+              />
             )}
           </div>
 
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-slate-300">Have you had any late rental payments in the past 3 years?</label>
+            <p className="text-sm font-medium text-slate-300">Have you had any late rental payments in the past 3 years?</p>
             <div className="grid grid-cols-2 gap-3">
-              {[{ value: false, label: 'No, always on time' }, { value: true, label: 'Yes' }].map((opt) => (
-                <label
+              {([{ value: false, label: 'No, always on time' }, { value: true, label: 'Yes' }] as const).map((opt) => (
+                <button
                   key={String(opt.value)}
-                  className="flex items-center justify-center p-3 rounded-xl cursor-pointer transition-all duration-200 text-sm font-medium"
+                  type="button"
+                  onClick={() => setValue('has_late_payments', opt.value, { shouldValidate: true })}
+                  className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 text-sm font-medium"
                   style={hasLatePayments === opt.value ? {
                     background: 'rgba(59,130,246,0.15)',
                     border: '2px solid rgba(59,130,246,0.4)',
@@ -311,28 +315,29 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
                     color: '#64748B',
                   }}
                 >
-                  <input
-                    type="radio"
-                    className="sr-only"
-                    value={String(opt.value)}
-                    {...register('has_late_payments', { setValueAs: (v) => v === 'true' })}
-                  />
                   {opt.label}
-                </label>
+                </button>
               ))}
             </div>
             {hasLatePayments && (
-              <Textarea label="Please explain" placeholder="Provide details about the late payments..." {...register('late_payment_explanation')} error={errors.late_payment_explanation?.message} />
+              <Textarea
+                label="Please explain"
+                placeholder="Provide details about the late payments..."
+                {...register('late_payment_explanation')}
+                error={errors.late_payment_explanation?.message}
+              />
             )}
           </div>
 
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-slate-300">Do you have any pets?</label>
+            <p className="text-sm font-medium text-slate-300">Do you have any pets?</p>
             <div className="grid grid-cols-2 gap-3">
-              {[{ value: false, label: 'No' }, { value: true, label: 'Yes' }].map((opt) => (
-                <label
+              {([{ value: false, label: 'No' }, { value: true, label: 'Yes' }] as const).map((opt) => (
+                <button
                   key={String(opt.value)}
-                  className="flex items-center justify-center p-3 rounded-xl cursor-pointer transition-all duration-200 text-sm font-medium"
+                  type="button"
+                  onClick={() => setValue('has_pets', opt.value, { shouldValidate: true })}
+                  className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 text-sm font-medium"
                   style={hasPets === opt.value ? {
                     background: 'rgba(59,130,246,0.15)',
                     border: '2px solid rgba(59,130,246,0.4)',
@@ -343,14 +348,8 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
                     color: '#64748B',
                   }}
                 >
-                  <input
-                    type="radio"
-                    className="sr-only"
-                    value={String(opt.value)}
-                    {...register('has_pets', { setValueAs: (v) => v === 'true' })}
-                  />
                   {opt.label}
-                </label>
+                </button>
               ))}
             </div>
             {hasPets && (
