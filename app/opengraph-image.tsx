@@ -45,22 +45,22 @@ export default function OgImage() {
         {/* Headline */}
         <div
           style={{
+            display: 'flex',
+            flexDirection: 'column',
             fontSize: 68,
             fontWeight: 800,
-            color: '#F1F5F9',
             lineHeight: 1.1,
             marginBottom: 28,
             letterSpacing: '-2px',
           }}
         >
-          AI Tenant Screening
-          <br />
+          <span style={{ color: '#F1F5F9' }}>AI Tenant Screening</span>
           <span style={{ color: '#60A5FA' }}>for Landlords</span>
         </div>
 
         {/* Subline */}
-        <div style={{ fontSize: 28, color: '#94A3B8', lineHeight: 1.5, marginBottom: 52 }}>
-          Score applicants out of 100 · Verify income automatically · Catch fake pay stubs
+        <div style={{ display: 'flex', fontSize: 28, color: '#94A3B8', lineHeight: 1.5, marginBottom: 52 }}>
+          <span>Score applicants out of 100 · Verify income automatically · Catch fake pay stubs</span>
         </div>
 
         {/* Tags */}

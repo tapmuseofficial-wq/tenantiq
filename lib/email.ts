@@ -1,7 +1,5 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function sendNewApplicationEmail({
   landlordEmail,
   tenantName,
@@ -12,6 +10,8 @@ export async function sendNewApplicationEmail({
   propertyName: string
 }): Promise<void> {
   if (!process.env.RESEND_API_KEY) return
+
+  const resend = new Resend(process.env.RESEND_API_KEY)
 
   await resend.emails.send({
     from: 'TenantIQ <notifications@notifications.tenants-iq.com>',
