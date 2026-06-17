@@ -60,9 +60,11 @@ export default function SignupPage() {
       authData = result.data
       authError = result.error
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      // Log the full error server-side (visible in Vercel logs) but never
+      // surface the raw exception message to the browser — it can contain
+      // internal infrastructure details.
       console.error('[signup] supabase.auth.signUp threw:', err)
-      setError({ text: `Sign-up failed: ${message}`, showSignIn: false })
+      setError({ text: 'Sign-up failed. Please try again.', showSignIn: false })
       return
     }
 
@@ -84,11 +86,9 @@ export default function SignupPage() {
       return
     }
 
-    // Unexpected: no user object returned at all — log the full response so we
-    // can see exactly what Supabase returned in the browser console / Vercel logs.
     if (!authData.user) {
       console.error('[signup] unexpected response — no user object:', authData)
-      setError({ text: `Sign-up failed: unexpected response from Supabase (no user returned). Check the browser console for details.`, showSignIn: false })
+      setError({ text: 'Sign-up failed. Please try again.', showSignIn: false })
       return
     }
 

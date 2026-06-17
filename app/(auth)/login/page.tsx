@@ -29,7 +29,13 @@ function LoginForm() {
   const [error, setError] = useState<LoginError | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect') || '/dashboard'
+  // Guard against open-redirect attacks: only allow same-origin relative paths.
+  // A value like "https://evil.com" starts with a protocol, "//evil.com" starts
+  // with a double-slash — both are rejected in favour of the safe default.
+  const rawRedirect = searchParams.get('redirect') || '/dashboard'
+  const redirect = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+    ? rawRedirect
+    : '/dashboard'
 
   const { register, handleSubmit, formState: { isSubmitting } } = useForm<FormData>()
 
