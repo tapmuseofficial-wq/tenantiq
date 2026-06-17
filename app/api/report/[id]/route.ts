@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import { ReportDocument } from '@/components/pdf/report-template'
+import { globalApiRateLimit } from '@/lib/api-rate-limit'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -10,6 +11,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const limited = globalApiRateLimit(request)
+  if (limited) return limited
+
   const { id } = await params
 
   // Reject non-UUID values before they reach the database — prevents probing

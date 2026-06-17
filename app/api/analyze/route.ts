@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runAnalysis } from '@/lib/analyze'
+import { globalApiRateLimit } from '@/lib/api-rate-limit'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function POST(request: NextRequest) {
+  const limited = globalApiRateLimit(request)
+  if (limited) return limited
+
   // This endpoint triggers expensive Anthropic API calls — require a shared
   // secret so it cannot be abused by external callers.
   const secret = process.env.INTERNAL_API_SECRET

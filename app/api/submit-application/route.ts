@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { runAnalysis } from '@/lib/analyze'
 import { sendNewApplicationEmail } from '@/lib/email'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { globalApiRateLimit, getClientIp } from '@/lib/api-rate-limit'
 
 // All string fields are trimmed and capped. Boolean fields must be the
 // literal strings "true" or "false" (that is how the form serialises them).
@@ -33,12 +34,13 @@ const applicationSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  // Rate limit: 10 submissions per IP per hour
-  const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
-    request.headers.get('x-real-ip') ??
-    'unknown'
-  const { allowed, resetAt } = checkRateLimit(ip, 10, 60 * 60 * 1000)
+  // Global API cap: 100 req/hour per IP across all endpoints.
+  const globalLimited = globalApiRateLimit(request)
+  if (globalLimited) return globalLimited
+
+  // Route-specific cap: max 10 application submissions per IP per hour.
+  const ip = getClientIp(request)
+  const { allowed, resetAt } = checkRateLimit(`submit:${ip}`, 10, 60 * 60 * 1000)
   if (!allowed) {
     return NextResponse.json(
       { error: 'Too many submissions. Please try again later.' },

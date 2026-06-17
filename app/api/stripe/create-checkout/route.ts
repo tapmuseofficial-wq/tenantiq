@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
 import Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { globalApiRateLimit } from '@/lib/api-rate-limit'
 
 // Stripe returns resource_missing on the customer param when the stored ID
 // doesn't exist in the current mode — e.g. a test-mode customer ID used in
@@ -45,6 +46,9 @@ async function createFreshCustomer(
 }
 
 export async function POST(request: NextRequest) {
+  const limited = globalApiRateLimit(request)
+  if (limited) return limited
+
   const priceId = process.env.STRIPE_BASIC_PRICE_ID
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
 
