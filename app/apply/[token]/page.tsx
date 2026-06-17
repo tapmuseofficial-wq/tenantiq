@@ -7,10 +7,12 @@ import type { Property } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ApplyPage({ params }: { params: { token: string } }) {
+export default async function ApplyPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params
+
   // Tokens are nanoid(12): URL-safe alphanumeric + _ and -.
   // Reject anything that can't possibly be valid before hitting the database.
-  if (!params.token || !/^[\w-]{6,64}$/.test(params.token)) {
+  if (!token || !/^[\w-]{6,64}$/.test(token)) {
     notFound()
   }
 
@@ -22,13 +24,13 @@ export default async function ApplyPage({ params }: { params: { token: string } 
     const { data, error } = await supabase
       .from('properties')
       .select('*')
-      .eq('screening_token', params.token)
+      .eq('screening_token', token)
       .eq('is_active', true)
       .single()
 
     if (error || !data) {
       // PGRST116 = no rows matched — the token is invalid or the listing is inactive
-      console.error('[apply] property lookup failed:', error?.message ?? 'no data', { token: params.token })
+      console.error('[apply] property lookup failed:', error?.message ?? 'no data', { token })
       notFound()
     }
 
@@ -37,7 +39,7 @@ export default async function ApplyPage({ params }: { params: { token: string } 
     // createServiceClient() throws if env vars are missing; the Supabase client
     // can also throw on unexpected network or auth errors. Log for Vercel logs,
     // return 404 so tenants never see a raw 500.
-    console.error('[apply] unhandled error:', err instanceof Error ? err.message : err, { token: params.token })
+    console.error('[apply] unhandled error:', err instanceof Error ? err.message : err, { token })
     notFound()
   }
 

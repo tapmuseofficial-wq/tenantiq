@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 export default async function PropertiesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: properties } = await supabase

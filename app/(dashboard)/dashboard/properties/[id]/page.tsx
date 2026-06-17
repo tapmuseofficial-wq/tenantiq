@@ -8,14 +8,15 @@ import { formatCurrency, formatDate, getRecommendationStyle, getVerificationStyl
 import { CompareButton } from './compare-button'
 import { CopyLinkButton } from '@/components/dashboard/copy-link-button'
 
-export default async function PropertyDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: property, error } = await supabase
     .from('properties')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('landlord_id', user!.id)
     .single()
 
@@ -24,7 +25,7 @@ export default async function PropertyDetailPage({ params }: { params: { id: str
   const { data: applications } = await supabase
     .from('applications')
     .select('*')
-    .eq('property_id', params.id)
+    .eq('property_id', id)
     .order('score', { ascending: false, nullsFirst: false })
 
   const apps = applications || []

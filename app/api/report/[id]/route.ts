@@ -8,17 +8,19 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
+
   // Reject non-UUID values before they reach the database — prevents probing
   // with arbitrary strings that could cause unexpected query behaviour.
-  if (!UUID_RE.test(params.id ?? '')) {
+  if (!UUID_RE.test(id ?? '')) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
   try {
     // Verify landlord owns this application
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -38,7 +40,7 @@ export async function GET(
           landlord_id
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error || !application) {

@@ -6,14 +6,15 @@ import { ArrowLeft, FileDown, AlertTriangle, CheckCircle, User, Briefcase, Home,
 import Link from 'next/link'
 import { formatCurrency, formatDate, getRecommendationStyle, getVerificationStyle, calcIncomeRatio } from '@/lib/utils'
 
-export default async function ApplicantDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function ApplicantDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: app, error } = await supabase
     .from('applications')
     .select(`*, properties (name, monthly_rent, landlord_id, id)`)
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (error || !app) notFound()

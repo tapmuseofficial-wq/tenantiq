@@ -71,9 +71,7 @@ const nextConfig = {
       },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@react-pdf/renderer'],
-  },
+  serverExternalPackages: ['@react-pdf/renderer'],
 }
 
 module.exports = nextConfig

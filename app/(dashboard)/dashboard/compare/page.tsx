@@ -7,12 +7,9 @@ import Link from 'next/link'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-interface SearchParams {
-  ids?: string
-}
-
-export default async function ComparePage({ searchParams }: { searchParams: SearchParams }) {
-  const ids = searchParams.ids?.split(',').filter(Boolean) || []
+export default async function ComparePage({ searchParams }: { searchParams: Promise<{ ids?: string }> }) {
+  const { ids: idsRaw } = await searchParams
+  const ids = idsRaw?.split(',').filter(Boolean) || []
 
   // Enforce count bounds and validate each id is a proper UUID before
   // passing them to the database query.
@@ -20,7 +17,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Sear
     redirect('/dashboard')
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: applications, error } = await supabase

@@ -24,8 +24,8 @@ const signupSchema = z.object({
 
 // ─── IP helper (never trust client-supplied values) ──────────────────────────
 
-function getIp(): string {
-  const h = headers()
+async function getIp(): Promise<string> {
+  const h = await headers()
   return (
     h.get('x-forwarded-for')?.split(',')[0].trim() ??
     h.get('x-real-ip') ??
@@ -89,7 +89,7 @@ export type LoginResult =
  * after a successful result to pick up the new auth state.
  */
 export async function loginAction(email: string, password: string): Promise<LoginResult> {
-  const ip = getIp()
+  const ip = await getIp()
 
   // 5 attempts per IP per 15 minutes
   const { allowed } = checkRateLimit(`auth:login:${ip}`, 5, 15 * 60 * 1000)
@@ -102,7 +102,7 @@ export async function loginAction(email: string, password: string): Promise<Logi
     return { error: 'Invalid email or password format.', type: 'validation' }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { error: authError } = await supabase.auth.signInWithPassword({
     email:    parsed.data.email,
     password: parsed.data.password,
@@ -136,7 +136,7 @@ export async function signupAction(
   email:     string,
   password:  string,
 ): Promise<SignupResult> {
-  const ip = getIp()
+  const ip = await getIp()
 
   // 3 signups per IP per hour — stricter than login since account creation is
   // more expensive and abuse (e.g. bulk account farming) is harder to reverse.
@@ -151,7 +151,7 @@ export async function signupAction(
     return { error: first, type: 'validation' }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email:    parsed.data.email,
     password: parsed.data.password,
