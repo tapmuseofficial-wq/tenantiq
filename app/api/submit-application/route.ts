@@ -160,7 +160,11 @@ export async function POST(request: NextRequest) {
         // Non-fatal: application still saves, analysis runs without document
       } else {
         income_document_path = uploadData.path
-        income_document_name = documentFile.name
+        // Strip any path separators from the client-supplied filename before
+        // storing. The raw value is user-controlled and could contain
+        // path-traversal sequences (../../etc/passwd) or HTML if ever
+        // rendered outside a JSX context.
+        income_document_name = documentFile.name.replace(/[/\\]/g, '_').slice(0, 255)
       }
     }
 

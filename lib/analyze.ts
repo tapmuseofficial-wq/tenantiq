@@ -123,10 +123,13 @@ export async function runAnalysis(application_id: string): Promise<void> {
       console.log(`[analyze] done — application_id=${application_id}`)
     }
   } catch (err) {
+    // Log the real error server-side for debugging, but store only a generic
+    // message in the DB. The error column is shown to the landlord in the UI
+    // and should not leak internal details (model names, API quota messages, etc.).
     console.error(`[analyze] screenApplicant threw — application_id=${application_id}`, err instanceof Error ? err.message : err)
     const { error: statusError } = await supabase
       .from('applications')
-      .update({ status: 'error', error_message: err instanceof Error ? err.message : String(err) })
+      .update({ status: 'error', error_message: 'Analysis could not be completed. Please contact support if this persists.' })
       .eq('id', application_id)
     if (statusError) {
       console.error(`[analyze] also failed to set error status — application_id=${application_id}`, statusError.message)

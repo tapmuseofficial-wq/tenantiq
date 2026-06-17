@@ -1,5 +1,17 @@
 import { Resend } from 'resend'
 
+// HTML-encode every character that has special meaning in HTML so that
+// user-controlled strings (tenant name, property name) cannot inject
+// tags or event handlers into the email body.
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export async function sendNewApplicationEmail({
   landlordEmail,
   tenantName,
@@ -13,6 +25,9 @@ export async function sendNewApplicationEmail({
 
   const resend = new Resend(process.env.RESEND_API_KEY)
 
+  const safeTenantName   = escapeHtml(tenantName)
+  const safePropertyName = escapeHtml(propertyName)
+
   await resend.emails.send({
     from: 'TenantIQ <notifications@notifications.tenants-iq.com>',
     to: landlordEmail,
@@ -21,8 +36,8 @@ export async function sendNewApplicationEmail({
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#0A0F1E;color:#F1F5F9;border-radius:12px;">
         <h2 style="margin:0 0 8px;font-size:20px;color:#F1F5F9;">You have a new applicant</h2>
         <p style="margin:0 0 24px;font-size:15px;color:#94A3B8;">
-          <strong style="color:#F1F5F9;">${tenantName}</strong> has applied for
-          <strong style="color:#F1F5F9;">${propertyName}</strong>.
+          <strong style="color:#F1F5F9;">${safeTenantName}</strong> has applied for
+          <strong style="color:#F1F5F9;">${safePropertyName}</strong>.
         </p>
         <a
           href="https://tenants-iq.com/dashboard"
