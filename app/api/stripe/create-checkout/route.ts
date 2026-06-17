@@ -124,6 +124,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url })
   } catch (error) {
     if (error instanceof Stripe.errors.StripeError) {
+      // Log full Stripe details server-side for debugging, but never expose
+      // internal Stripe codes or error messages to the client — they can leak
+      // integration details that help an attacker probe the setup.
       console.error('[checkout] Stripe error:', {
         type: error.type,
         code: error.code,
@@ -132,14 +135,10 @@ export async function POST(request: NextRequest) {
         statusCode: error.statusCode,
         requestId: error.requestId,
       })
-      return NextResponse.json(
-        { error: `Stripe: ${error.message}`, code: error.code, param: error.param },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Payment session creation failed' }, { status: 500 })
     }
 
-    const message = error instanceof Error ? error.message : String(error)
-    console.error('[checkout] unexpected error:', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('[checkout] unexpected error:', error instanceof Error ? error.message : error)
+    return NextResponse.json({ error: 'Payment session creation failed' }, { status: 500 })
   }
 }

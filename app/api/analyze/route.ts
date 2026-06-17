@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runAnalysis } from '@/lib/analyze'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function POST(request: NextRequest) {
   // This endpoint triggers expensive Anthropic API calls — require a shared
   // secret so it cannot be abused by external callers.
@@ -17,6 +19,12 @@ export async function POST(request: NextRequest) {
     if (!application_id) {
       console.error('[analyze route] called without application_id')
       return NextResponse.json({ error: 'Missing application_id' }, { status: 400 })
+    }
+
+    // Reject non-UUID values before they reach the database query.
+    if (!UUID_RE.test(application_id)) {
+      console.error('[analyze route] invalid application_id format')
+      return NextResponse.json({ error: 'Invalid application_id' }, { status: 400 })
     }
 
     console.log(`[analyze route] received request — application_id=${application_id}`)

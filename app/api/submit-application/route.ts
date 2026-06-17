@@ -1,8 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createServiceClient } from '@/lib/supabase/server'
 import { runAnalysis } from '@/lib/analyze'
 import { sendNewApplicationEmail } from '@/lib/email'
 import { checkRateLimit } from '@/lib/rate-limit'
+
+// All string fields are trimmed and capped. Boolean fields must be the
+// literal strings "true" or "false" (that is how the form serialises them).
+// Numeric fields are coerced from string.  Any field outside these bounds
+// is rejected before touching the database or any external service.
+const applicationSchema = z.object({
+  screening_token: z.string().min(1).max(200),
+  full_name:               z.string().min(1).max(200).trim(),
+  email:                   z.string().email().max(254).trim(),
+  phone:                   z.string().min(7).max(30).trim(),
+  monthly_income_reported: z.coerce.number().min(0).max(10_000_000),
+  employer_name:           z.string().min(1).max(200).trim(),
+  time_at_job:             z.string().min(1).max(200).trim(),
+  reason_for_moving:       z.string().min(1).max(2000).trim(),
+  has_evictions:           z.enum(['true', 'false']).transform(v => v === 'true'),
+  eviction_explanation:    z.string().max(2000).trim().optional(),
+  has_late_payments:       z.enum(['true', 'false']).transform(v => v === 'true'),
+  late_payment_explanation: z.string().max(2000).trim().optional(),
+  has_pets:                z.enum(['true', 'false']).transform(v => v === 'true'),
+  pet_details:             z.string().max(500).trim().optional(),
+  reference_1_name:         z.string().max(200).trim().optional(),
+  reference_1_relationship: z.string().max(200).trim().optional(),
+  reference_1_phone:        z.string().max(30).trim().optional(),
+  reference_2_name:         z.string().max(200).trim().optional(),
+  reference_2_relationship: z.string().max(200).trim().optional(),
+  reference_2_phone:        z.string().max(30).trim().optional(),
+})
 
 export async function POST(request: NextRequest) {
   // Rate limit: 10 submissions per IP per hour
@@ -23,18 +51,36 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData()
-    const supabase = createServiceClient()
 
-    const screening_token = formData.get('screening_token') as string
-    if (!screening_token) {
-      return NextResponse.json({ error: 'Missing screening token' }, { status: 400 })
+    // Extract the file before converting to a plain object, because
+    // Object.fromEntries keeps only the last value per key and File objects
+    // would be lost if there were name collisions.
+    const documentFile = formData.get('income_document') as File | null
+
+    // Build a plain object from the string fields and validate with Zod.
+    // This is the single authoritative validation gate — nothing from the
+    // client is trusted past this point.
+    const rawFields: Record<string, string> = {}
+    for (const [key, value] of formData.entries()) {
+      if (key !== 'income_document' && typeof value === 'string') {
+        rawFields[key] = value
+      }
     }
+
+    const parsed = applicationSchema.safeParse(rawFields)
+    if (!parsed.success) {
+      console.warn('[submit] validation failed:', parsed.error.flatten().fieldErrors)
+      return NextResponse.json({ error: 'Invalid form data' }, { status: 400 })
+    }
+    const body = parsed.data
+
+    const supabase = createServiceClient()
 
     // Verify the property exists and is active
     const { data: property, error: propError } = await supabase
       .from('properties')
       .select('id, name, landlord_id, monthly_rent, is_active')
-      .eq('screening_token', screening_token)
+      .eq('screening_token', body.screening_token)
       .single()
 
     if (propError || !property) {
@@ -70,7 +116,6 @@ export async function POST(request: NextRequest) {
     let income_document_path: string | null = null
     let income_document_name: string | null = null
 
-    const documentFile = formData.get('income_document') as File | null
     if (documentFile && documentFile.size > 0) {
       // Validate file size (10MB)
       const MAX_SIZE = 10 * 1024 * 1024
@@ -117,32 +162,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Insert application
+    // Insert application using only validated, typed values from the Zod output
     const applicationData = {
-      property_id: property.id,
-      full_name: formData.get('full_name') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      monthly_income_reported: parseFloat(formData.get('monthly_income_reported') as string),
-      employer_name: formData.get('employer_name') as string,
-      time_at_job: formData.get('time_at_job') as string,
-      reason_for_moving: formData.get('reason_for_moving') as string,
-      has_evictions: formData.get('has_evictions') === 'true',
-      eviction_explanation: formData.get('eviction_explanation') as string | null || null,
-      has_late_payments: formData.get('has_late_payments') === 'true',
-      late_payment_explanation: formData.get('late_payment_explanation') as string | null || null,
-      has_pets: formData.get('has_pets') === 'true',
-      pet_details: formData.get('pet_details') as string | null || null,
-      reference_1_name: formData.get('reference_1_name') as string | null || null,
-      reference_1_relationship: formData.get('reference_1_relationship') as string | null || null,
-      reference_1_phone: formData.get('reference_1_phone') as string | null || null,
-      reference_2_name: formData.get('reference_2_name') as string | null || null,
-      reference_2_relationship: formData.get('reference_2_relationship') as string | null || null,
-      reference_2_phone: formData.get('reference_2_phone') as string | null || null,
+      property_id:              property.id,
+      full_name:                body.full_name,
+      email:                    body.email,
+      phone:                    body.phone,
+      monthly_income_reported:  body.monthly_income_reported,
+      employer_name:            body.employer_name,
+      time_at_job:              body.time_at_job,
+      reason_for_moving:        body.reason_for_moving,
+      has_evictions:            body.has_evictions,
+      eviction_explanation:     body.eviction_explanation || null,
+      has_late_payments:        body.has_late_payments,
+      late_payment_explanation: body.late_payment_explanation || null,
+      has_pets:                 body.has_pets,
+      pet_details:              body.pet_details || null,
+      reference_1_name:         body.reference_1_name || null,
+      reference_1_relationship: body.reference_1_relationship || null,
+      reference_1_phone:        body.reference_1_phone || null,
+      reference_2_name:         body.reference_2_name || null,
+      reference_2_relationship: body.reference_2_relationship || null,
+      reference_2_phone:        body.reference_2_phone || null,
       income_document_path,
       income_document_name,
-      status: 'pending',
-      income_verification_status: income_document_path ? 'unverified' : 'no_document',
+      status:                      'pending',
+      income_verification_status:  income_document_path ? 'unverified' : 'no_document',
     }
 
     const { data: application, error: appError } = await supabase
@@ -177,12 +222,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Notify the landlord — non-blocking, failure must not affect the tenant's submission
-    const tenantName = formData.get('full_name') as string
     const { data: landlordAuth } = await supabase.auth.admin.getUserById(property.landlord_id)
     if (landlordAuth.user?.email) {
       sendNewApplicationEmail({
         landlordEmail: landlordAuth.user.email,
-        tenantName,
+        tenantName: body.full_name,
         propertyName: property.name,
       }).catch(() => {})
     }
@@ -200,7 +244,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, application_id: application.id })
   } catch (error) {
-    console.error('Submit application error:', error)
+    console.error('Submit application error:', error instanceof Error ? error.message : error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

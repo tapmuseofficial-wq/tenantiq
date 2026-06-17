@@ -5,6 +5,8 @@ import { ComparisonTable } from '@/components/dashboard/comparison-table'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 interface SearchParams {
   ids?: string
 }
@@ -12,7 +14,9 @@ interface SearchParams {
 export default async function ComparePage({ searchParams }: { searchParams: SearchParams }) {
   const ids = searchParams.ids?.split(',').filter(Boolean) || []
 
-  if (ids.length < 2 || ids.length > 4) {
+  // Enforce count bounds and validate each id is a proper UUID before
+  // passing them to the database query.
+  if (ids.length < 2 || ids.length > 4 || ids.some(id => !UUID_RE.test(id))) {
     redirect('/dashboard')
   }
 
