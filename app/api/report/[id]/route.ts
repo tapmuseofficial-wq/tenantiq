@@ -4,10 +4,18 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { createElement } from 'react'
 import { ReportDocument } from '@/components/pdf/report-template'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Reject non-UUID values before they reach the database — prevents probing
+  // with arbitrary strings that could cause unexpected query behaviour.
+  if (!UUID_RE.test(params.id ?? '')) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   try {
     // Verify landlord owns this application
     const supabase = createClient()

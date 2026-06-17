@@ -4,34 +4,23 @@ import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
-import { createClient } from '@/lib/supabase/client'
-import { checkEmailExists } from '@/app/actions/auth'
+import { loginAction } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AlertCircle } from 'lucide-react'
 
-// No zod — we validate manually in onSubmit so we control every error message
 interface FormData {
-  email: string
+  email:    string
   password: string
 }
 
-type ErrorType = 'empty' | 'invalid_email' | 'wrong_password' | 'no_account' | 'unknown'
-
-interface LoginError {
-  type: ErrorType
-  message: string
-}
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 function LoginForm() {
-  const [error, setError] = useState<LoginError | null>(null)
-  const router = useRouter()
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [showSignup, setShowSignup] = useState(false)
+  const router       = useRouter()
   const searchParams = useSearchParams()
-  // Guard against open-redirect attacks: only allow same-origin relative paths.
-  // A value like "https://evil.com" starts with a protocol, "//evil.com" starts
-  // with a double-slash — both are rejected in favour of the safe default.
+
+  // Open-redirect guard: only allow same-origin relative paths.
   const rawRedirect = searchParams.get('redirect') || '/dashboard'
   const redirect = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
     ? rawRedirect
@@ -40,39 +29,21 @@ function LoginForm() {
   const { register, handleSubmit, formState: { isSubmitting } } = useForm<FormData>()
 
   async function onSubmit(data: FormData) {
-    setError(null)
+    setErrorMsg(null)
+    setShowSignup(false)
 
-    // 1. Empty fields
-    if (!data.email.trim() || !data.password) {
-      setError({ type: 'empty', message: 'Please enter your email and password.' })
-      return
-    }
+    // All validation, rate-limiting, and auth happen server-side in loginAction.
+    const result = await loginAction(data.email.trim(), data.password)
 
-    // 2. Invalid email format
-    if (!EMAIL_RE.test(data.email.trim())) {
-      setError({ type: 'invalid_email', message: 'Please enter a valid email address.' })
-      return
-    }
-
-    const supabase = createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: data.email.trim(),
-      password: data.password,
-    })
-
-    if (!authError) {
+    if ('success' in result) {
+      // Cookie has been set by the server action — refresh to pick up auth state.
       router.push(redirect)
       router.refresh()
       return
     }
 
-    // 3 & 4. Auth failed — use the admin API to distinguish the two cases
-    const exists = await checkEmailExists(data.email.trim())
-    if (!exists) {
-      setError({ type: 'no_account', message: 'No account found with this email.' })
-    } else {
-      setError({ type: 'wrong_password', message: 'Incorrect password. Please try again.' })
-    }
+    setErrorMsg(result.error)
+    setShowSignup(result.type === 'no_account')
   }
 
   return (
@@ -92,7 +63,7 @@ function LoginForm() {
         {...register('password')}
       />
 
-      {error && (
+      {errorMsg && (
         <div
           className="rounded-xl p-3.5"
           style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}
@@ -100,8 +71,8 @@ function LoginForm() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-red-400">
-              {error.message}
-              {error.type === 'no_account' && (
+              {errorMsg}
+              {showSignup && (
                 <>
                   {' '}
                   <Link

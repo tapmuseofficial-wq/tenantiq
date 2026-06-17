@@ -50,11 +50,11 @@ export async function POST(request: NextRequest) {
 
   if (!priceId) {
     console.error('[checkout] missing env var: STRIPE_BASIC_PRICE_ID')
-    return NextResponse.json({ error: 'Server misconfiguration: STRIPE_BASIC_PRICE_ID is not set' }, { status: 500 })
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 500 })
   }
   if (!appUrl) {
     console.error('[checkout] missing env var: NEXT_PUBLIC_APP_URL')
-    return NextResponse.json({ error: 'Server misconfiguration: NEXT_PUBLIC_APP_URL is not set' }, { status: 500 })
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 500 })
   }
 
   try {
