@@ -72,7 +72,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('PDF generation error:', error)
+    console.error('PDF generation error:', error instanceof Error ? error.message : String(error))
     return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 })
   }
 }

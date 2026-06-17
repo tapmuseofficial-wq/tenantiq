@@ -54,6 +54,9 @@ const securityHeaders = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Suppress the X-Powered-By: Next.js response header. This header reveals
+  // the server technology stack and aids fingerprinting.
+  poweredByHeader: false,
   async headers() {
     return [
       {

@@ -5,9 +5,18 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // If env vars are not configured, pass through without auth checks
-  // rather than crashing the middleware and returning 500
+  // If env vars are missing the app is misconfigured. Fail closed on
+  // dashboard routes — never let an unauthenticated request through just
+  // because configuration is broken. Public routes aren't in the matcher
+  // so they are unaffected.
   if (!supabaseUrl || !supabaseAnonKey) {
+    const { pathname } = request.nextUrl
+    if (pathname.startsWith('/dashboard')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
     return NextResponse.next({ request })
   }
 
