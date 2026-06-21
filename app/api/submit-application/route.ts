@@ -51,6 +51,18 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Reject non-multipart requests before attempting to parse the body.
+  // request.formData() throws when Content-Type isn't multipart/form-data,
+  // which would fall through to the generic 500 catch — misleading because
+  // the fault is the caller's, not the server's.
+  const contentType = request.headers.get('content-type') ?? ''
+  if (!contentType.includes('multipart/form-data')) {
+    return NextResponse.json(
+      { error: 'Invalid request format. Expected multipart/form-data.' },
+      { status: 400 },
+    )
+  }
+
   try {
     const formData = await request.formData()
 
