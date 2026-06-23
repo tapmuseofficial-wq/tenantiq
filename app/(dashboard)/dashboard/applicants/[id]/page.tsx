@@ -1,8 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { ScoreRing } from '@/components/dashboard/score-ring'
 import { RatingPrompt } from '@/components/dashboard/rating-modal'
+import { FutureRatingPrompt } from '@/components/dashboard/future-rating-prompt'
 import { ArrowLeft, FileDown, AlertTriangle, CheckCircle, User, Briefcase, Home, Phone, Sparkles, Users, ThumbsUp, ThumbsDown, Flag } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate, getRecommendationStyle, getVerificationStyle, calcIncomeRatio } from '@/lib/utils'
@@ -13,11 +14,18 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: app, error } = await supabase
-    .from('applications')
-    .select(`*, properties (name, monthly_rent, landlord_id, id)`)
-    .eq('id', id)
-    .single()
+  const serviceSupabase = createServiceClient()
+
+  const [{ data: app, error }, { count: totalNetworkReviews }] = await Promise.all([
+    supabase
+      .from('applications')
+      .select(`*, properties (name, monthly_rent, landlord_id, id)`)
+      .eq('id', id)
+      .single(),
+    serviceSupabase
+      .from('tenant_ratings')
+      .select('*', { count: 'exact', head: true }),
+  ])
 
   if (error || !app) notFound()
 
@@ -104,7 +112,11 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
       )}
 
       {/* ── Community History ────────────────────────────────── */}
-      <CommunityHistorySection history={communityHistory} applicationId={app.id} />
+      <CommunityHistorySection
+        history={communityHistory}
+        applicationId={app.id}
+        totalNetworkReviews={totalNetworkReviews ?? 0}
+      />
 
       {/* Score + Recommendation + Income */}
       <div className="grid sm:grid-cols-3 gap-4">
@@ -439,9 +451,14 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
         />
       )}
 
-      {/* ── Rating Prompt (shown only when screening is complete and not yet rated) */}
+      {/* ── Rating Prompt (rate now — shown when screening is complete and unrated) */}
       {app.status === 'complete' && !app.is_rated && (
         <RatingPrompt applicationId={app.id} tenantName={app.full_name} />
+      )}
+
+      {/* ── Future Rating Reminder (bookmark to rate after tenancy ends) */}
+      {app.status === 'complete' && !app.is_rated && (
+        <FutureRatingPrompt applicationId={app.id} tenantName={app.full_name} />
       )}
     </div>
   )
@@ -452,9 +469,11 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
 function CommunityHistorySection({
   history,
   applicationId,
+  totalNetworkReviews,
 }: {
   history: CommunityHistory | null
   applicationId: string
+  totalNetworkReviews: number
 }) {
   // If analysis hasn't run yet, don't show the section at all
   if (!history) return null
@@ -477,9 +496,18 @@ function CommunityHistorySection({
   return (
     <div className="rounded-2xl p-5" style={{ background: sectionBg, border: `1px solid ${sectionBorder}` }}>
       {/* Section header */}
-      <div className="flex items-center gap-2 mb-4">
-        <Users className="w-4 h-4 text-slate-400" />
-        <h3 className="text-sm font-bold text-slate-200 uppercase tracking-widest">🏘️ Community History</h3>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-slate-400" />
+          <h3 className="text-sm font-bold text-slate-200 uppercase tracking-widest">🏘️ Community History</h3>
+        </div>
+        {totalNetworkReviews > 0 && (
+          <span className="text-xs text-slate-500 flex-shrink-0 mt-0.5">
+            Checked against{' '}
+            <span className="font-semibold text-violet-400">{totalNetworkReviews.toLocaleString()}</span>
+            {' '}landlord review{totalNetworkReviews !== 1 ? 's' : ''} in our network
+          </span>
+        )}
       </div>
 
       {!hasMatches ? (

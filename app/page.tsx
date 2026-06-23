@@ -14,6 +14,7 @@ import {
   MapPin,
   History,
 } from 'lucide-react'
+import { LiveStatBar } from '@/components/landing/stat-counter'
 import { CheckoutButton } from '@/components/ui/checkout-button'
 
 export default function LandingPage() {
@@ -154,6 +155,11 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Live Stats ───────────────────────────────────────── */}
+      <div className="max-w-5xl mx-auto px-5 sm:px-8 pb-4">
+        <LiveStatBar />
+      </div>
 
       {/* ── 3 Steps ──────────────────────────────────────────── */}
       <section className="py-12 sm:py-16">

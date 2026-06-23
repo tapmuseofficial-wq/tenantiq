@@ -22,9 +22,10 @@ const navItems = [
 
 interface SidebarProps {
   profile: Profile | null
+  communityCount: number
 }
 
-export function Sidebar({ profile }: SidebarProps) {
+export function Sidebar({ profile, communityCount }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -93,6 +94,20 @@ export function Sidebar({ profile }: SidebarProps) {
           )
         })}
       </nav>
+
+      {/* Community review count */}
+      <div className="px-4 pb-3">
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-500"
+          style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.12)' }}
+        >
+          <span>🏘️</span>
+          <span>
+            <span className="font-semibold text-violet-400">{communityCount.toLocaleString()}</span>
+            {' '}community review{communityCount !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
 
       {/* Plan status + Profile */}
       <div className="px-3 py-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
