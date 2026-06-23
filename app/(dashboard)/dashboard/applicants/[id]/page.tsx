@@ -501,13 +501,12 @@ function CommunityHistorySection({
           <Users className="w-4 h-4 text-slate-400" />
           <h3 className="text-sm font-bold text-slate-200 uppercase tracking-widest">🏘️ Community History</h3>
         </div>
-        {totalNetworkReviews > 0 && (
-          <span className="text-xs text-slate-500 flex-shrink-0 mt-0.5">
-            Checked against{' '}
-            <span className="font-semibold text-violet-400">{totalNetworkReviews.toLocaleString()}</span>
-            {' '}landlord review{totalNetworkReviews !== 1 ? 's' : ''} in our network
-          </span>
-        )}
+        <span className="text-xs text-slate-500 flex-shrink-0 mt-0.5 text-right leading-relaxed">
+          Automatically checked against{' '}
+          <span className="font-semibold text-violet-400">{totalNetworkReviews.toLocaleString()}</span>
+          {' '}community review{totalNetworkReviews !== 1 ? 's' : ''} —{' '}
+          matched by email, phone number, and name + city
+        </span>
       </div>
 
       {!hasMatches ? (

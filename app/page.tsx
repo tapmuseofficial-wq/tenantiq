@@ -157,7 +157,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Live Stats ───────────────────────────────────────── */}
-      <div className="max-w-5xl mx-auto px-5 sm:px-8 pb-4">
+      <div className="max-w-5xl mx-auto px-5 sm:px-8 py-6">
         <LiveStatBar />
       </div>
 
