@@ -1,5 +1,6 @@
-export const dynamic = 'force-static'
+'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import {
   FileSearch,
@@ -12,10 +13,69 @@ import {
   X,
   Database,
   ThumbsUp,
+  ChevronDown,
 } from 'lucide-react'
 import { LiveStatBar } from '@/components/landing/stat-counter'
 import { CheckoutButton } from '@/components/ui/checkout-button'
-import { FaqAccordion } from '@/components/landing/faq-accordion'
+
+const FAQ_ITEMS = [
+  {
+    q: 'How does income verification work?',
+    a: 'The tenant uploads their pay stub or bank statement. Our AI reads the document and compares the income to what they self-reported. If there is a discrepancy we flag it immediately.',
+  },
+  {
+    q: 'What is the community database?',
+    a: 'Landlords who use TenantIQ can rate tenants after their tenancy ends. Every new application is automatically checked against these reviews — matched by email, phone number, and name plus city. It gets more powerful as more landlords join.',
+  },
+  {
+    q: 'Do tenants need to create an account?',
+    a: 'No. You send them a link, they fill out a form. That is it. No app download, no account creation.',
+  },
+  {
+    q: 'Is my data secure?',
+    a: 'Yes. All data is encrypted at rest and in transit. We do not sell or share your data with third parties.',
+  },
+  {
+    q: 'What if I only have one rental unit?',
+    a: 'Perfect. TenantIQ is built for landlords with 1 to 100 units. Start free with 3 screenings and only pay when you need more.',
+  },
+]
+
+function FAQSection() {
+  const [open, setOpen] = useState<number | null>(null)
+
+  return (
+    <div className="space-y-3">
+      {FAQ_ITEMS.map((item, i) => (
+        <div
+          key={i}
+          className="rounded-2xl"
+          style={{
+            background: 'rgba(15,22,41,0.8)',
+            border: `1px solid ${open === i ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.07)'}`,
+          }}
+        >
+          <button
+            type="button"
+            className="w-full flex items-center justify-between px-6 py-5 text-left gap-4 cursor-pointer"
+            onClick={() => setOpen(open === i ? null : i)}
+          >
+            <span className="font-semibold text-slate-100 text-sm sm:text-base">{item.q}</span>
+            <ChevronDown
+              className="w-5 h-5 text-slate-400 flex-shrink-0"
+              style={{ transform: open === i ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            />
+          </button>
+          {open === i && (
+            <div className="px-6 pb-5">
+              <p className="text-sm text-slate-400 leading-relaxed">{item.a}</p>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function LandingPage() {
   return (
@@ -105,13 +165,10 @@ export default function LandingPage() {
 
             {/* Right: Product Mockup */}
             <div className="relative">
-              {/* Glow behind card */}
               <div
                 className="absolute inset-0 rounded-3xl blur-3xl opacity-25 pointer-events-none"
                 style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.6), rgba(139,92,246,0.5))' }}
               />
-
-              {/* Report card */}
               <div
                 className="relative rounded-3xl overflow-hidden"
                 style={{
@@ -120,7 +177,6 @@ export default function LandingPage() {
                   boxShadow: '0 0 100px rgba(59,130,246,0.1), 0 40px 80px rgba(0,0,0,0.6)',
                 }}
               >
-                {/* Window chrome */}
                 <div
                   className="px-5 py-3 flex items-center gap-2"
                   style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(15,22,41,0.6)' }}
@@ -132,14 +188,12 @@ export default function LandingPage() {
                 </div>
 
                 <div className="p-5 sm:p-6">
-                  {/* Header row */}
                   <div className="flex items-start justify-between mb-5">
                     <div>
                       <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Applicant</p>
                       <p className="font-bold text-slate-100 text-base">Michael Chen</p>
                       <p className="text-xs text-slate-500 mt-0.5">2BR · 123 Maple St, Toronto</p>
                     </div>
-                    {/* Score ring */}
                     <div className="relative w-[68px] h-[68px] flex-shrink-0">
                       <svg className="w-full h-full -rotate-90" viewBox="0 0 68 68">
                         <circle cx="34" cy="34" r="27" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
@@ -163,7 +217,6 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  {/* Recommendation */}
                   <div
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl mb-4"
                     style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}
@@ -172,7 +225,6 @@ export default function LandingPage() {
                     <span className="text-sm font-semibold text-emerald-400">Recommended: Approve</span>
                   </div>
 
-                  {/* Data rows */}
                   <div className="space-y-0">
                     <div
                       className="flex items-center justify-between py-3"
@@ -204,7 +256,6 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  {/* Community history */}
                   <div className="pt-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Users className="w-3.5 h-3.5 text-purple-400" />
@@ -234,7 +285,6 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Floating badges */}
               <div
                 className="absolute -top-3 -right-2 sm:-right-4 px-3 py-1.5 rounded-xl text-xs font-bold text-white whitespace-nowrap"
                 style={{
@@ -285,7 +335,6 @@ export default function LandingPage() {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
-            {/* Old Way */}
             <div
               className="rounded-2xl p-7 sm:p-9"
               style={{
@@ -323,7 +372,6 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            {/* TenantIQ Way */}
             <div
               className="rounded-2xl p-7 sm:p-9"
               style={{
@@ -462,12 +510,10 @@ export default function LandingPage() {
           </div>
 
           <div className="grid sm:grid-cols-3 gap-8 sm:gap-10 relative">
-            {/* Connector line (desktop) */}
             <div
               className="hidden sm:block absolute top-10 left-[calc(33%+20px)] right-[calc(33%+20px)] h-px pointer-events-none"
               style={{ background: 'linear-gradient(90deg, rgba(59,130,246,0.3), rgba(139,92,246,0.3))' }}
             />
-
             {[
               {
                 num: '1',
@@ -576,7 +622,6 @@ export default function LandingPage() {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
-            {/* Free */}
             <div
               className="rounded-2xl p-7 sm:p-8"
               style={{ background: 'rgba(15,22,41,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -614,7 +659,6 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Plus */}
             <div
               className="rounded-2xl p-7 sm:p-8 relative overflow-hidden"
               style={{
@@ -673,7 +717,7 @@ export default function LandingPage() {
               Questions? We&rsquo;ve got answers.
             </h2>
           </div>
-          <FaqAccordion />
+          <FAQSection />
         </div>
       </section>
 
