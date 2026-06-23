@@ -600,9 +600,17 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
             <ChevronRight className="w-4 h-4" />
           </Button>
         ) : (
-          <Button type="submit" loading={submitting} disabled={!canSubmit} size="md">
-            Submit Application
-          </Button>
+          <>
+            {/* Disclosure notice — shown only on the final submit step */}
+            <p className="text-xs text-slate-500 leading-relaxed px-1 mb-3">
+              By submitting this application, you acknowledge that your information will be checked
+              against a landlord community database as part of this screening process. Previous
+              landlords on this platform may have submitted ratings about past tenancies.
+            </p>
+            <Button type="submit" loading={submitting} disabled={!canSubmit} size="md">
+              Submit Application
+            </Button>
+          </>
         )}
       </div>
     </form>

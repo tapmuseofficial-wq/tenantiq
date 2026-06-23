@@ -2,9 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { ScoreRing } from '@/components/dashboard/score-ring'
-import { ArrowLeft, FileDown, AlertTriangle, CheckCircle, User, Briefcase, Home, Phone, Sparkles } from 'lucide-react'
+import { RatingPrompt } from '@/components/dashboard/rating-modal'
+import { ArrowLeft, FileDown, AlertTriangle, CheckCircle, User, Briefcase, Home, Phone, Sparkles, Users, ThumbsUp, ThumbsDown, Flag } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate, getRecommendationStyle, getVerificationStyle, calcIncomeRatio } from '@/lib/utils'
+import type { CommunityHistory, CommunityRating } from '@/lib/community-history'
 
 export default async function ApplicantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -27,6 +29,7 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
   const effectiveIncome = app.income_verified ?? app.monthly_income_reported
   const ratio = calcIncomeRatio(effectiveIncome, property.monthly_rent)
   const breakdown = app.score_breakdown as Record<string, { score: number; max: number; explanation: string }> | null
+  const communityHistory = app.community_history as CommunityHistory | null
 
   const recColors = {
     approve: { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', text: '#34D399', label: 'Approve' },
@@ -97,6 +100,9 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
           <p className="text-sm text-red-400">Analysis failed: {app.error_message || 'Unknown error'}</p>
         </div>
       )}
+
+      {/* ── Community History ────────────────────────────────── */}
+      <CommunityHistorySection history={communityHistory} applicationId={app.id} />
 
       {/* Score + Recommendation + Income */}
       <div className="grid sm:grid-cols-3 gap-4">
@@ -421,6 +427,134 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
           </CardContent>
         </Card>
       )}
+
+      {/* ── Rating Prompt (shown only when screening is complete and not yet rated) */}
+      {app.status === 'complete' && !app.is_rated && (
+        <RatingPrompt applicationId={app.id} tenantName={app.full_name} />
+      )}
+    </div>
+  )
+}
+
+// ── Community History section (Server Component) ─────────────────────────────
+
+function CommunityHistorySection({
+  history,
+  applicationId,
+}: {
+  history: CommunityHistory | null
+  applicationId: string
+}) {
+  // If analysis hasn't run yet, don't show the section at all
+  if (!history) return null
+
+  const hasMatches  = history.matches.length > 0
+  const hasNegative = history.negative_count > 0
+  const hasPositive = history.positive_count > 0
+
+  const sectionBg     = hasNegative
+    ? 'rgba(239,68,68,0.06)'
+    : hasPositive
+      ? 'rgba(16,185,129,0.06)'
+      : 'rgba(255,255,255,0.03)'
+  const sectionBorder = hasNegative
+    ? 'rgba(239,68,68,0.2)'
+    : hasPositive
+      ? 'rgba(16,185,129,0.2)'
+      : 'rgba(255,255,255,0.07)'
+
+  return (
+    <div className="rounded-2xl p-5" style={{ background: sectionBg, border: `1px solid ${sectionBorder}` }}>
+      {/* Section header */}
+      <div className="flex items-center gap-2 mb-4">
+        <Users className="w-4 h-4 text-slate-400" />
+        <h3 className="text-sm font-bold text-slate-200 uppercase tracking-widest">🏘️ Community History</h3>
+      </div>
+
+      {!hasMatches ? (
+        <p className="text-sm text-slate-500">No community history found for this applicant.</p>
+      ) : (
+        <>
+          {/* Summary banner */}
+          {hasNegative && (
+            <div
+              className="flex items-center gap-2 rounded-xl px-4 py-2.5 mb-4 text-sm font-semibold"
+              style={{ background: 'rgba(239,68,68,0.12)', color: '#F87171' }}
+            >
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              ⚠️ This applicant has been negatively rated by {history.negative_count} previous TenantIQ landlord{history.negative_count !== 1 ? 's' : ''}
+            </div>
+          )}
+          {!hasNegative && hasPositive && (
+            <div
+              className="flex items-center gap-2 rounded-xl px-4 py-2.5 mb-4 text-sm font-semibold"
+              style={{ background: 'rgba(16,185,129,0.12)', color: '#34D399' }}
+            >
+              <CheckCircle className="w-4 h-4 flex-shrink-0" />
+              ✅ This applicant has been positively rated by {history.positive_count} previous TenantIQ landlord{history.positive_count !== 1 ? 's' : ''}
+            </div>
+          )}
+
+          {/* Individual rating cards */}
+          <div className="space-y-3">
+            {history.matches.map((rating: CommunityRating) => (
+              <RatingCard key={rating.id} rating={rating} applicationId={applicationId} />
+            ))}
+          </div>
+
+          <p className="text-xs text-slate-600 mt-4">
+            ℹ️ These are unverified landlord accounts. Use your own judgment alongside this information.
+          </p>
+        </>
+      )}
+    </div>
+  )
+}
+
+function RatingCard({ rating, applicationId }: { rating: CommunityRating; applicationId: string }) {
+  const isPositive = rating.rating === 'positive'
+  const cardBg     = isPositive ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)'
+  const cardBorder = isPositive ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'
+  const iconColor  = isPositive ? '#34D399' : '#F87171'
+  const dateStr    = new Date(rating.created_at).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })
+
+  return (
+    <div className="rounded-xl p-4" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <span className="text-lg flex-shrink-0">{isPositive ? '👍' : '👎'}</span>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold mb-1" style={{ color: iconColor }}>
+              Rated by a TenantIQ landlord on {dateStr}
+              {rating.match_reason === 'email' && ' (email match)'}
+              {rating.match_reason === 'phone' && ' (phone match)'}
+              {rating.match_reason === 'name'  && ' (name match)'}
+            </p>
+            {rating.description && (
+              <p className="text-sm text-slate-300 leading-relaxed">{rating.description}</p>
+            )}
+            {rating.property_address && (
+              <p className="text-xs text-slate-500 mt-1">Property: {rating.property_address}</p>
+            )}
+            {rating.is_disputed && (
+              <p className="text-xs font-semibold mt-2" style={{ color: '#FCD34D' }}>
+                ⚠️ Disputed — this rating has been flagged as potentially inaccurate
+              </p>
+            )}
+          </div>
+        </div>
+        {/* Dispute flag form */}
+        <form action={`/api/ratings/${rating.id}/dispute`} method="POST">
+          <button
+            type="submit"
+            title="Flag this rating as inaccurate"
+            className="flex items-center gap-1 text-xs text-slate-600 hover:text-slate-400 transition-colors flex-shrink-0"
+          >
+            <Flag className="w-3 h-3" />
+            Flag
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

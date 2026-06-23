@@ -12,6 +12,7 @@ import {
   Star,
   Lock,
   MapPin,
+  History,
 } from 'lucide-react'
 import { CheckoutButton } from '@/components/ui/checkout-button'
 
@@ -278,6 +279,12 @@ export default function LandingPage() {
                 desc: 'Flags prior evictions, late payments, and collects employer and landlord references automatically.',
                 gradient: 'linear-gradient(135deg, #F59E0B, #EF4444)',
               },
+              {
+                icon: History,
+                title: 'Community Tenant History',
+                desc: 'See how this applicant was rated by previous TenantIQ landlords. Earn a free credit every time you contribute a rating.',
+                gradient: 'linear-gradient(135deg, #8B5CF6, #6366F1)',
+              },
             ].map((f) => (
               <div
                 key={f.title}
@@ -335,7 +342,7 @@ export default function LandingPage() {
                 <p className="text-sm text-emerald-400 mt-1.5 font-medium">No credit card required</p>
               </div>
               <ul className="space-y-2.5 mb-6">
-                {['3 total screenings', 'AI income verification', 'Smart scoring (0–100)', 'PDF reports'].map((f) => (
+                {['3 total screenings', 'AI income verification', 'Smart scoring (0–100)', 'PDF reports', 'Community tenant history'].map((f) => (
                   <li key={f} className="flex items-center gap-2.5 text-sm text-slate-400">
                     <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                     {f}
@@ -385,6 +392,7 @@ export default function LandingPage() {
                   'AI income verification',
                   'Smart scoring (0–100)',
                   'PDF reports',
+                  'Community tenant history',
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2.5 text-sm text-slate-300">
                     <CheckCircle className="w-4 h-4 text-blue-400 flex-shrink-0" />

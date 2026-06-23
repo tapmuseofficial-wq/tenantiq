@@ -1,5 +1,10 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { extractIncomeFromDocument, screenApplicant } from '@/lib/anthropic'
+import {
+  lookupCommunityHistory,
+  adjustScoreForCommunity,
+  type CommunityHistory,
+} from '@/lib/community-history'
 
 export async function runAnalysis(application_id: string): Promise<void> {
   console.log(`[analyze] starting — application_id=${application_id}`)
@@ -8,7 +13,7 @@ export async function runAnalysis(application_id: string): Promise<void> {
 
   const { data: app, error: fetchError } = await supabase
     .from('applications')
-    .select(`*, properties (monthly_rent, name, landlord_id)`)
+    .select(`*, properties (monthly_rent, name, landlord_id, city)`)
     .eq('id', application_id)
     .single()
 
@@ -24,7 +29,7 @@ export async function runAnalysis(application_id: string): Promise<void> {
     .update({ status: 'analyzing' })
     .eq('id', application_id)
 
-  const property = app.properties as { monthly_rent: number; name: string; landlord_id: string }
+  const property = app.properties as { monthly_rent: number; name: string; landlord_id: string; city: string | null }
 
   let income_verified: number | null = null
   let income_document_type: string | null = null
@@ -70,31 +75,83 @@ export async function runAnalysis(application_id: string): Promise<void> {
     }
   }
 
-  // Step 2: AI screening — always runs regardless of document
+  // Step 2: Community history lookup — runs before AI screening so history
+  // can be included in the prompt context and stored with the application.
+  let communityHistory: CommunityHistory | null = null
+  try {
+    console.log(`[analyze] looking up community history — email=${app.email}`)
+    communityHistory = await lookupCommunityHistory({
+      email:     app.email,
+      phone:     app.phone,
+      full_name: app.full_name,
+    })
+    console.log(`[analyze] community history — positive=${communityHistory.positive_count} negative=${communityHistory.negative_count} matches=${communityHistory.matches.length}`)
+
+    // Persist the snapshot so the applicant detail page can show it without
+    // re-querying the tenant_ratings table (which the landlord can't see).
+    await supabase
+      .from('applications')
+      .update({ community_history: communityHistory })
+      .eq('id', application_id)
+  } catch (err) {
+    console.error(`[analyze] community history lookup failed — application_id=${application_id}`, err instanceof Error ? err.message : err)
+    // Non-fatal: continue without community history
+  }
+
+  // Build a plain-text summary of community history for the Claude prompt.
+  function buildCommunityContext(history: CommunityHistory | null): string | undefined {
+    if (!history || history.matches.length === 0) return undefined
+
+    const lines: string[] = []
+    const fmt = (d: string) => new Date(d).toLocaleDateString('en-CA', { year: 'numeric', month: 'short' })
+
+    for (const m of history.matches) {
+      const icon   = m.rating === 'positive' ? '👍 POSITIVE' : '👎 NEGATIVE'
+      const date   = fmt(m.created_at)
+      const desc   = m.description ? ` — "${m.description.slice(0, 300)}"` : ''
+      const addr   = m.property_address ? ` (property: ${m.property_address})` : ''
+      const flag   = m.is_disputed ? ' [DISPUTED]' : ''
+      lines.push(`${icon}${flag} on ${date}${addr}${desc}`)
+    }
+
+    return lines.join('\n')
+  }
+
+  // Step 3: AI screening
   console.log(`[analyze] starting screening — application_id=${application_id}`)
   try {
     const screening = await screenApplicant({
-      monthly_rent: property.monthly_rent,
-      full_name: app.full_name,
-      monthly_income_reported: app.monthly_income_reported,
+      monthly_rent:             property.monthly_rent,
+      full_name:                app.full_name,
+      monthly_income_reported:  app.monthly_income_reported,
       income_verified,
       income_verification_status,
-      employer_name: app.employer_name,
-      time_at_job: app.time_at_job,
-      reason_for_moving: app.reason_for_moving,
-      has_evictions: app.has_evictions,
-      eviction_explanation: app.eviction_explanation,
-      has_late_payments: app.has_late_payments,
+      employer_name:            app.employer_name,
+      time_at_job:              app.time_at_job,
+      reason_for_moving:        app.reason_for_moving,
+      has_evictions:            app.has_evictions,
+      eviction_explanation:     app.eviction_explanation,
+      has_late_payments:        app.has_late_payments,
       late_payment_explanation: app.late_payment_explanation,
-      reference_1_name: app.reference_1_name,
+      reference_1_name:         app.reference_1_name,
       reference_1_relationship: app.reference_1_relationship,
-      reference_1_phone: app.reference_1_phone,
-      reference_2_name: app.reference_2_name,
+      reference_1_phone:        app.reference_1_phone,
+      reference_2_name:         app.reference_2_name,
       reference_2_relationship: app.reference_2_relationship,
-      reference_2_phone: app.reference_2_phone,
+      reference_2_phone:        app.reference_2_phone,
+      community_context:        buildCommunityContext(communityHistory),
     })
 
-    console.log(`[analyze] screening complete — score=${screening.score} recommendation=${screening.recommendation}`)
+    // Apply deterministic community score adjustment on top of the AI score.
+    const adjustedScore = communityHistory
+      ? adjustScoreForCommunity(screening.score, communityHistory)
+      : screening.score
+
+    if (adjustedScore !== screening.score) {
+      console.log(`[analyze] community score adjustment — base=${screening.score} adjusted=${adjustedScore}`)
+    }
+
+    console.log(`[analyze] screening complete — score=${adjustedScore} recommendation=${screening.recommendation}`)
 
     const { error: updateError } = await supabase
       .from('applications')
@@ -104,16 +161,16 @@ export async function runAnalysis(application_id: string): Promise<void> {
         income_extraction_confidence,
         income_verification_status,
         income_verification_notes,
-        score: screening.score,
-        score_breakdown: screening.score_breakdown,
-        red_flags: screening.red_flags,
-        positive_factors: screening.positive_factors,
-        interview_questions: screening.interview_questions,
-        recommendation: screening.recommendation,
-        recommendation_reason: screening.recommendation_reason,
-        ai_summary: screening.summary,
-        status: 'complete',
-        analyzed_at: new Date().toISOString(),
+        score:                   adjustedScore,
+        score_breakdown:         screening.score_breakdown,
+        red_flags:               screening.red_flags,
+        positive_factors:        screening.positive_factors,
+        interview_questions:     screening.interview_questions,
+        recommendation:          screening.recommendation,
+        recommendation_reason:   screening.recommendation_reason,
+        ai_summary:              screening.summary,
+        status:                  'complete',
+        analyzed_at:             new Date().toISOString(),
       })
       .eq('id', application_id)
 
@@ -123,9 +180,6 @@ export async function runAnalysis(application_id: string): Promise<void> {
       console.log(`[analyze] done — application_id=${application_id}`)
     }
   } catch (err) {
-    // Log the real error server-side for debugging, but store only a generic
-    // message in the DB. The error column is shown to the landlord in the UI
-    // and should not leak internal details (model names, API quota messages, etc.).
     console.error(`[analyze] screenApplicant threw — application_id=${application_id}`, err instanceof Error ? err.message : err)
     const { error: statusError } = await supabase
       .from('applications')
