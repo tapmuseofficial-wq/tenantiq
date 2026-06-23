@@ -17,7 +17,7 @@ import { Profile } from '@/types'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { href: '/dashboard/properties', label: 'Properties', icon: Building2 },
+  { href: '/dashboard/properties', label: 'Properties & Links', icon: Building2 },
 ]
 
 interface SidebarProps {

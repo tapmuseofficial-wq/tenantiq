@@ -5,7 +5,8 @@ import { StatsCard } from '@/components/dashboard/stats-card'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScoreRing } from '@/components/dashboard/score-ring'
-import { Users, CheckCircle, BarChart3, Building2, Plus, ArrowRight, TrendingUp } from 'lucide-react'
+import { OnboardingModal } from '@/components/dashboard/onboarding-modal'
+import { Users, CheckCircle, BarChart3, Building2, Plus, ArrowRight, TrendingUp, Sparkles, Link2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate, getRecommendationStyle } from '@/lib/utils'
 import { Suspense } from 'react'
@@ -58,8 +59,13 @@ export default async function DashboardPage({
     ? Math.round(scoredApps.reduce((sum, a) => sum + (a.score || 0), 0) / scoredApps.length)
     : null
 
+  const hasProperties = (properties || []).length > 0
+
   return (
     <div className="space-y-8">
+      {/* First-login onboarding modal */}
+      <OnboardingModal userId={user!.id} />
+
       {/* Fires the Google Ads conversion event when ?upgraded=true is present */}
       <Suspense fallback={null}>
         <ConversionTracker conversionId={conversionId} />
@@ -71,21 +77,63 @@ export default async function DashboardPage({
           <h1 className="text-2xl font-bold text-slate-100">Dashboard</h1>
           <p className="text-slate-500 mt-0.5 text-sm">Overview of your tenant screening activity</p>
         </div>
-        <Link
-          href="/dashboard/properties/new"
-          className="inline-flex items-center gap-2 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-all duration-200 hover:opacity-90"
-          style={{
-            background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-            boxShadow: '0 0 20px rgba(59,130,246,0.3)',
-          }}
-        >
-          <Plus className="w-4 h-4" />
-          New Screening Link
-        </Link>
+        <div className="flex flex-col items-end gap-1">
+          <Link
+            href="/dashboard/properties/new"
+            className="inline-flex items-center gap-2 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-all duration-200 hover:opacity-90"
+            style={{
+              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+              boxShadow: '0 0 20px rgba(59,130,246,0.3)',
+            }}
+          >
+            <Plus className="w-4 h-4" />
+            New Screening Link
+          </Link>
+          {!hasProperties && (
+            <p className="text-[10px] text-slate-600">← Start here</p>
+          )}
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Empty state — no properties yet */}
+      {!hasProperties && (
+        <div
+          className="rounded-2xl p-12 text-center"
+          style={{ background: 'rgba(15,22,41,0.7)', border: '1px solid rgba(255,255,255,0.07)' }}
+        >
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+            style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.1))', border: '1px solid rgba(59,130,246,0.2)' }}
+          >
+            <Sparkles className="w-8 h-8 text-blue-400" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-100 mb-2">Get Started</h2>
+          <p className="text-slate-500 text-sm max-w-md mx-auto mb-8 leading-relaxed">
+            Create your first screening link in 30 seconds. Share it with any tenant and get an AI-powered screening report automatically.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/dashboard/properties/new"
+              className="inline-flex items-center gap-2 text-white font-bold px-8 py-4 rounded-xl text-sm transition-all hover:opacity-90"
+              style={{
+                background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+                boxShadow: '0 0 30px rgba(59,130,246,0.4)',
+              }}
+            >
+              <Link2 className="w-4 h-4" />
+              Create my first screening link
+            </Link>
+          </div>
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-8 text-xs text-slate-600">
+            <span className="flex items-center gap-2">✓ Free to start</span>
+            <span className="flex items-center gap-2">✓ AI scoring in 60 seconds</span>
+            <span className="flex items-center gap-2">✓ No credit card required</span>
+          </div>
+        </div>
+      )}
+
+      {/* Stats — only show when there is data */}
+      {hasProperties && <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Applicants"
           value={allApps.length}
@@ -111,9 +159,9 @@ export default async function DashboardPage({
           icon={Building2}
           variant="purple"
         />
-      </div>
+      </div>}
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      {hasProperties && <div className="grid lg:grid-cols-3 gap-6">
         {/* Recent applicants */}
         <div className="lg:col-span-2">
           <Card>
@@ -237,7 +285,7 @@ export default async function DashboardPage({
             </CardContent>
           </Card>
         </div>
-      </div>
+      </div>}
     </div>
   )
 }

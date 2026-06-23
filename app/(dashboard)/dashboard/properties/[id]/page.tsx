@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { ScoreRing } from '@/components/dashboard/score-ring'
-import { ArrowLeft, FileDown, Users, Link2 } from 'lucide-react'
+import { AutoRefresh } from '@/components/dashboard/auto-refresh'
+import { ArrowLeft, FileDown, Users, Link2, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate, getRecommendationStyle, getVerificationStyle, calcIncomeRatio } from '@/lib/utils'
 import { CompareButton } from './compare-button'
@@ -42,8 +43,13 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     decline: { bg: 'rgba(239,68,68,0.12)', text: '#F87171' },
   }
 
+  const hasAnalyzing = apps.some(a => a.status === 'analyzing')
+
   return (
     <div className="space-y-6">
+      {/* Auto-refresh every 5 s while any application is being analyzed */}
+      <AutoRefresh active={hasAnalyzing} />
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4">
@@ -107,15 +113,26 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         </CardHeader>
         <CardContent className="p-0">
           {apps.length === 0 ? (
-            <div className="py-16 text-center">
+            <div className="py-16 text-center px-6">
               <div
                 className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
                 style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.12)' }}
               >
                 <Users className="w-7 h-7 text-blue-400/30" />
               </div>
-              <p className="font-medium text-slate-400 text-sm">No applicants yet</p>
-              <p className="text-xs text-slate-500 mt-1.5">Share the screening link above to start collecting applications.</p>
+              <p className="font-semibold text-slate-300 text-sm mb-1.5">No applications yet</p>
+              <p className="text-xs text-slate-500 mb-5 max-w-xs mx-auto">
+                Share your screening link with tenants — they fill out a 5-minute form and you get an AI report automatically.
+              </p>
+              <div
+                className="inline-block rounded-xl px-4 py-2.5 font-mono text-xs text-slate-400 truncate max-w-xs"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                {process.env.NEXT_PUBLIC_APP_URL}/apply/{property.screening_token}
+              </div>
+              <div className="mt-3">
+                <CopyLinkButton token={property.screening_token} />
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -144,29 +161,37 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
                     return (
                       <tr
                         key={app.id}
-                        className="row-hover"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
                       >
+                        {/* Name + date */}
                         <td className="px-6 py-4">
                           <div>
                             <p className="font-semibold text-slate-200">{app.full_name}</p>
                             <p className="text-xs text-slate-500 mt-0.5">{formatDate(app.created_at)}</p>
                           </div>
                         </td>
+
+                        {/* Score — spinner while analyzing */}
                         <td className="px-4 py-4 text-center">
-                          <div className="flex justify-center">
-                            {app.status === 'analyzing' ? (
-                              <span className="text-xs text-blue-400 animate-pulse font-medium">Analyzing…</span>
-                            ) : (
+                          {app.status === 'analyzing' ? (
+                            <div className="flex justify-center">
+                              <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                            </div>
+                          ) : (
+                            <div className="flex justify-center">
                               <ScoreRing score={app.score} size="sm" />
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </td>
+
+                        {/* Verified income */}
                         <td className="px-4 py-4">
                           <span className="font-semibold text-slate-300">
                             {app.income_verified ? formatCurrency(app.income_verified) : '—'}
                           </span>
                         </td>
+
+                        {/* Income ratio */}
                         <td className="px-4 py-4">
                           {ratio ? (
                             <span className="font-bold" style={{ color: ratio >= 3 ? '#34D399' : ratio >= 2 ? '#FCD34D' : '#F87171' }}>
@@ -174,6 +199,8 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
                             </span>
                           ) : <span className="text-slate-600">—</span>}
                         </td>
+
+                        {/* Evictions */}
                         <td className="px-4 py-4 text-center">
                           {app.has_evictions ? (
                             <span className="text-red-400 font-bold">✗</span>
@@ -181,44 +208,63 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
                             <span className="text-emerald-400 font-bold">✓</span>
                           )}
                         </td>
+
+                        {/* Verification */}
                         <td className="px-4 py-4">
-                          <span
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                            style={{ background: vc.bg, color: vc.text }}
-                          >
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: vc.bg, color: vc.text }}>
                             {verStyle.label}
                           </span>
                         </td>
+
+                        {/* Decision */}
                         <td className="px-4 py-4">
                           {app.recommendation ? (
-                            <span
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                              style={{ background: rc.bg, color: rc.text }}
-                            >
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: rc.bg, color: rc.text }}>
                               {recStyle.label}
                             </span>
                           ) : (
                             <span className="text-slate-600 text-xs">—</span>
                           )}
                         </td>
+
+                        {/* Action — prominent when complete */}
                         <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
+                          {app.status === 'analyzing' ? (
+                            <div className="min-w-[140px]">
+                              <p className="text-xs text-blue-400 font-medium mb-1.5">AI analyzing…</p>
+                              <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                <div
+                                  className="h-1 rounded-full animate-pulse"
+                                  style={{ width: '60%', background: 'linear-gradient(90deg, #3B82F6, #8B5CF6)' }}
+                                />
+                              </div>
+                              <p className="text-[10px] text-slate-600 mt-1">Auto-refreshing…</p>
+                            </div>
+                          ) : app.status === 'complete' ? (
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/dashboard/applicants/${app.id}`}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white whitespace-nowrap transition-all hover:opacity-90"
+                                style={{
+                                  background: 'linear-gradient(135deg, #10B981, #059669)',
+                                  boxShadow: '0 0 12px rgba(16,185,129,0.3)',
+                                }}
+                              >
+                                View Report
+                                <ArrowRight className="w-3 h-3" />
+                              </Link>
+                              <a href={`/api/report/${app.id}`} className="text-slate-600 hover:text-slate-400 transition-colors" title="Download PDF">
+                                <FileDown className="w-4 h-4" />
+                              </a>
+                            </div>
+                          ) : (
                             <Link
                               href={`/dashboard/applicants/${app.id}`}
                               className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors whitespace-nowrap"
                             >
                               View →
                             </Link>
-                            {app.status === 'complete' && (
-                              <a
-                                href={`/api/report/${app.id}`}
-                                className="text-slate-600 hover:text-slate-400 transition-colors"
-                                title="Download PDF"
-                              >
-                                <FileDown className="w-4 h-4" />
-                              </a>
-                            )}
-                          </div>
+                          )}
                         </td>
                       </tr>
                     )

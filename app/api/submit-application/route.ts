@@ -218,14 +218,29 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (appError || !application) {
-      console.error('[submit] Application insert failed:', {
-        code: appError?.code,
+      // Log the full error so it shows in Vercel logs for diagnosis.
+      console.error('[submit] Application insert failed — full error:', {
+        code:    appError?.code,
         message: appError?.message,
         details: appError?.details,
+        hint:    appError?.hint,
       })
-      if (appError?.code === 'PGRST204') {
-        console.error('[submit] Column missing — run migration 004_add_pets.sql in the Supabase SQL editor')
+
+      // PostgreSQL error 42703 = "column does not exist".
+      // PostgREST surfaces this as code "42703" in the error object.
+      // Cause: a migration (007, 008, or 009) has not been run in Supabase yet.
+      const isMissingColumn =
+        appError?.code === '42703' ||
+        appError?.message?.includes('column') ||
+        appError?.code === 'PGRST204'
+
+      if (isMissingColumn) {
+        console.error(
+          '[submit] MISSING COLUMN — run 009_ensure_columns.sql in the Supabase SQL Editor.',
+          'Missing field hint:', appError?.message
+        )
       }
+
       return NextResponse.json({ error: 'Failed to save application' }, { status: 500 })
     }
 

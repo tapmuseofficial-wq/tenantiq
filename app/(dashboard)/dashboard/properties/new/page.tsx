@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { LinkShareModal } from '@/components/dashboard/link-share-modal'
 
 const schema = z.object({
   name: z.string().min(2, 'Property name is required'),
@@ -29,6 +30,7 @@ type FormData = z.infer<typeof schema>
 export default function NewPropertyPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
+  const [created, setCreated] = useState<{ id: string; name: string; screening_token: string } | null>(null)
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,12 +44,13 @@ export default function NewPropertyPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    const token = nanoid(12)
     const { data: property, error: dbError } = await supabase
       .from('properties')
       .insert({
         ...data,
         landlord_id: user.id,
-        screening_token: nanoid(12),
+        screening_token: token,
         bedrooms: data.bedrooms || null,
         bathrooms: data.bathrooms || null,
         address: data.address || null,
@@ -55,18 +58,30 @@ export default function NewPropertyPage() {
         city: data.city || null,
         province_state: data.province_state || null,
       })
-      .select('id')
+      .select('id, name, screening_token')
       .single()
 
-    if (dbError) {
+    if (dbError || !property) {
       setError('Failed to create property. Please try again.')
       return
     }
 
-    router.push(`/dashboard/properties/${property.id}`)
+    // Show the link share modal instead of navigating away immediately.
+    setCreated({ id: property.id, name: property.name, screening_token: property.screening_token })
   }
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://tenants-iq.com'
+
   return (
+    <>
+      {created && (
+        <LinkShareModal
+          propertyId={created.id}
+          propertyName={created.name}
+          screeningToken={created.screening_token}
+          appUrl={appUrl}
+        />
+      )}
     <div className="max-w-2xl">
       <div className="flex items-center gap-4 mb-8">
         <Link
@@ -176,5 +191,6 @@ export default function NewPropertyPage() {
         </div>
       </form>
     </div>
+    </>
   )
 }
