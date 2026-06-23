@@ -31,35 +31,40 @@ export function FaqAccordion() {
 
   return (
     <div className="space-y-3">
-      {faqs.map((faq, i) => (
-        <div
-          key={i}
-          className="rounded-2xl overflow-hidden transition-all duration-200"
-          style={{
-            background: 'rgba(15,22,41,0.8)',
-            border: `1px solid ${open === i ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.07)'}`,
-          }}
-        >
-          <button
-            className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
-            onClick={() => setOpen(open === i ? null : i)}
-          >
-            <span className="font-semibold text-slate-100 text-sm sm:text-base">{faq.q}</span>
-            <ChevronDown
-              className="w-5 h-5 text-slate-400 flex-shrink-0 transition-transform duration-200"
-              style={{ transform: open === i ? 'rotate(180deg)' : 'rotate(0deg)' }}
-            />
-          </button>
+      {faqs.map((faq, i) => {
+        const isOpen = open === i
+        return (
           <div
-            className="overflow-hidden transition-all duration-200"
-            style={{ maxHeight: open === i ? '200px' : '0px' }}
+            key={i}
+            className="rounded-2xl"
+            style={{
+              background: 'rgba(15,22,41,0.8)',
+              border: `1px solid ${isOpen ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.07)'}`,
+              transition: 'border-color 0.2s',
+            }}
           >
-            <div className="px-6 pb-5">
-              <p className="text-sm text-slate-400 leading-relaxed">{faq.a}</p>
-            </div>
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
+              onClick={() => setOpen(isOpen ? null : i)}
+            >
+              <span className="font-semibold text-slate-100 text-sm sm:text-base">{faq.q}</span>
+              <ChevronDown
+                className="w-5 h-5 text-slate-400 flex-shrink-0"
+                style={{
+                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s',
+                }}
+              />
+            </button>
+            {isOpen && (
+              <div className="px-6 pb-5">
+                <p className="text-sm text-slate-400 leading-relaxed">{faq.a}</p>
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
