@@ -31,6 +31,8 @@ const applicationSchema = z.object({
   reference_2_name:         z.string().max(200).trim().optional(),
   reference_2_relationship: z.string().max(200).trim().optional(),
   reference_2_phone:        z.string().max(30).trim().optional(),
+  // Optional social profile links — stored as raw text, fetched later during analysis
+  social_links:            z.string().max(2000).trim().optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -204,6 +206,7 @@ export async function POST(request: NextRequest) {
       reference_2_phone:        body.reference_2_phone || null,
       income_document_path,
       income_document_name,
+      social_links:                body.social_links || null,
       status:                      'pending',
       income_verification_status:  income_document_path ? 'unverified' : 'no_document',
     }

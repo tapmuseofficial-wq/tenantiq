@@ -38,6 +38,35 @@ const BLOCKED_HOSTNAME_RE: RegExp[] = [
  * @param rawUrl      The full URL string to validate.
  * @param allowedHosts Exact hostnames that are permitted (e.g. ['api.stripe.com']).
  */
+/**
+ * Like assertAllowlistedUrl but without the hostname allowlist.
+ * Use this when the caller cannot know the full set of permitted hosts in
+ * advance — e.g. tenant-supplied social profile URLs. The private-IP and
+ * scheme checks still apply in full; only the domain allowlist is omitted.
+ *
+ * @throws if the URL is invalid, non-HTTPS, or resolves to a private host.
+ */
+export function assertSafePublicUrl(rawUrl: string): void {
+  let parsed: URL
+  try {
+    parsed = new URL(rawUrl)
+  } catch {
+    throw new Error(`[ssrf] rejected — unparseable URL`)
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`[ssrf] rejected — non-HTTPS scheme: ${parsed.protocol}`)
+  }
+
+  const { hostname } = parsed
+
+  for (const pattern of BLOCKED_HOSTNAME_RE) {
+    if (pattern.test(hostname)) {
+      throw new Error(`[ssrf] rejected — private/internal host: ${hostname}`)
+    }
+  }
+}
+
 export function assertAllowlistedUrl(rawUrl: string, allowedHosts: string[]): void {
   let parsed: URL
   try {

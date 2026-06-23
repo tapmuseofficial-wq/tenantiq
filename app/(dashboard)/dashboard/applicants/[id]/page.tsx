@@ -29,7 +29,9 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
   const effectiveIncome = app.income_verified ?? app.monthly_income_reported
   const ratio = calcIncomeRatio(effectiveIncome, property.monthly_rent)
   const breakdown = app.score_breakdown as Record<string, { score: number; max: number; explanation: string }> | null
-  const communityHistory = app.community_history as CommunityHistory | null
+  const communityHistory  = app.community_history   as CommunityHistory | null
+  type SocialAnalysis = { assessment: string; positive_signals: string[]; red_flags: string[]; summary: string; fetched_links?: { url: string; status: string }[] }
+  const socialAnalysis    = app.social_media_analysis as SocialAnalysis | null
 
   const recColors = {
     approve: { bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.2)', text: '#34D399', label: 'Approve' },
@@ -428,6 +430,15 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
         </Card>
       )}
 
+      {/* ── Social Media Analysis ──────────────────────────────── */}
+      {(app.social_links || socialAnalysis) && (
+        <SocialMediaSection
+          links={app.social_links as string | null}
+          analysis={socialAnalysis}
+          analysisComplete={app.status === 'complete'}
+        />
+      )}
+
       {/* ── Rating Prompt (shown only when screening is complete and not yet rated) */}
       {app.status === 'complete' && !app.is_rated && (
         <RatingPrompt applicationId={app.id} tenantName={app.full_name} />
@@ -556,5 +567,140 @@ function RatingCard({ rating, applicationId }: { rating: CommunityRating; applic
         </form>
       </div>
     </div>
+  )
+}
+
+// ── Social Media Analysis section (Server Component) ────────────────────────
+
+type SocialAnalysis = {
+  assessment: string
+  positive_signals: string[]
+  red_flags: string[]
+  summary: string
+  fetched_links?: { url: string; status: string }[]
+}
+
+function SocialMediaSection({
+  links,
+  analysis,
+  analysisComplete,
+}: {
+  links: string | null
+  analysis: SocialAnalysis | null
+  analysisComplete: boolean
+}) {
+  const assessmentStyle: Record<string, { bg: string; border: string; text: string; label: string }> = {
+    positive:           { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.2)',  text: '#34D399', label: '✅ Positive'         },
+    neutral:            { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)', text: '#94A3B8', label: '— Neutral'          },
+    concerning:         { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.2)',   text: '#F87171', label: '⚠️ Concerning'       },
+    insufficient_data:  { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)', text: '#64748B', label: '— Insufficient data' },
+  }
+  const style = assessmentStyle[analysis?.assessment ?? ''] ?? assessmentStyle.insufficient_data
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="font-semibold text-slate-200 flex items-center gap-2 text-sm">
+          🔍 Social Media Analysis
+        </h2>
+        <p className="text-xs text-slate-500 mt-0.5">Tenant-provided links — content fetched and analyzed automatically</p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Links the tenant submitted */}
+        {links && (
+          <div>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Links provided by applicant</p>
+            <div className="space-y-1">
+              {links.split(/[\n,]+/).map(l => l.trim()).filter(Boolean).map(url => {
+                const fetched = analysis?.fetched_links?.find(f => f.url === url)
+                const statusLabel =
+                  fetched?.status === 'ok'           ? '✓ Fetched' :
+                  fetched?.status === 'blocked'      ? '✗ Login required' :
+                  fetched?.status === 'timeout'      ? '✗ Timed out' :
+                  fetched?.status === 'ssrf_blocked' ? '✗ Invalid URL' :
+                  fetched                            ? '✗ Error' :
+                  analysisComplete                   ? '✗ Not fetched' : '…'
+                const statusColor =
+                  fetched?.status === 'ok' ? '#34D399' : '#64748B'
+                return (
+                  <div key={url} className="flex items-center gap-2">
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-400 hover:text-blue-300 truncate flex-1 transition-colors"
+                    >
+                      {url}
+                    </a>
+                    <span className="text-xs flex-shrink-0 font-medium" style={{ color: statusColor }}>
+                      {statusLabel}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Analysis results */}
+        {!analysis && analysisComplete && (
+          <p className="text-sm text-slate-500">No significant public content was found or accessible at the provided URLs.</p>
+        )}
+
+        {!analysis && !analysisComplete && (
+          <p className="text-sm text-slate-500">Analysis will appear once screening is complete.</p>
+        )}
+
+        {analysis && (
+          <>
+            {/* Assessment badge */}
+            <div
+              className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold"
+              style={{ background: style.bg, border: `1px solid ${style.border}`, color: style.text }}
+            >
+              {style.label}
+            </div>
+
+            {/* Summary */}
+            <p className="text-sm text-slate-300 leading-relaxed">{analysis.summary}</p>
+
+            {/* Positive signals */}
+            {analysis.positive_signals.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">Positive signals</p>
+                <ul className="space-y-1">
+                  {analysis.positive_signals.map((s, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-400">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Red flags */}
+            {analysis.red_flags.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-2">Red flags</p>
+                <ul className="space-y-1">
+                  {analysis.red_flags.map((f, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-400">
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Disclaimer */}
+            <p className="text-xs text-slate-600 leading-relaxed border-t pt-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+              This analysis is based on publicly available content at the URLs the applicant voluntarily provided. Social media content should be one factor among many in your decision.
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }

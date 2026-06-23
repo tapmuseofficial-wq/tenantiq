@@ -1,10 +1,11 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { extractIncomeFromDocument, screenApplicant } from '@/lib/anthropic'
+import { extractIncomeFromDocument, screenApplicant, analyzeSocialMedia } from '@/lib/anthropic'
 import {
   lookupCommunityHistory,
   adjustScoreForCommunity,
   type CommunityHistory,
 } from '@/lib/community-history'
+import { parseSocialLinks, fetchAllSocialLinks } from '@/lib/social-fetch'
 
 export async function runAnalysis(application_id: string): Promise<void> {
   console.log(`[analyze] starting — application_id=${application_id}`)
@@ -117,7 +118,32 @@ export async function runAnalysis(application_id: string): Promise<void> {
     return lines.join('\n')
   }
 
-  // Step 3: AI screening
+  // Step 3: Social media analysis — runs only when tenant supplied links
+  if (app.social_links) {
+    try {
+      const links = parseSocialLinks(app.social_links)
+      if (links.length > 0) {
+        console.log(`[analyze] fetching social links — count=${links.length}`)
+        const fetched = await fetchAllSocialLinks(links)
+        const accessibleCount = fetched.filter(r => r.status === 'ok' && r.text).length
+        console.log(`[analyze] social fetch done — accessible=${accessibleCount}/${links.length}`)
+
+        const analysis = await analyzeSocialMedia({ full_name: app.full_name, fetched })
+
+        await supabase
+          .from('applications')
+          .update({ social_media_analysis: { ...analysis, fetched_links: fetched.map(f => ({ url: f.url, status: f.status, httpStatus: f.httpStatus })) } })
+          .eq('id', application_id)
+
+        console.log(`[analyze] social analysis done — assessment=${analysis.assessment}`)
+      }
+    } catch (err) {
+      console.error(`[analyze] social media analysis failed — application_id=${application_id}`, err instanceof Error ? err.message : err)
+      // Non-fatal — continue with the rest of the analysis
+    }
+  }
+
+  // Step 4: AI screening
   console.log(`[analyze] starting screening — application_id=${application_id}`)
   try {
     const screening = await screenApplicant({
