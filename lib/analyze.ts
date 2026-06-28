@@ -1,11 +1,11 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { extractIncomeFromDocument, screenApplicant, analyzeSocialMedia } from '@/lib/anthropic'
+import { extractIncomeFromDocument, screenApplicant, analyzePublicPresence } from '@/lib/anthropic'
 import {
   lookupCommunityHistory,
   adjustScoreForCommunity,
   type CommunityHistory,
 } from '@/lib/community-history'
-import { parseSocialLinks, fetchAllSocialLinks } from '@/lib/social-fetch'
+import { searchDuckDuckGo } from '@/lib/social-fetch'
 
 export async function runAnalysis(application_id: string): Promise<void> {
   console.log(`[analyze] starting — application_id=${application_id}`)
@@ -118,27 +118,29 @@ export async function runAnalysis(application_id: string): Promise<void> {
     return lines.join('\n')
   }
 
-  // Step 3: Social media analysis — runs only when tenant supplied links
-  if (app.social_links) {
+  // Step 3: Public presence search — runs only when tenant gave consent
+  if (app.social_media_consent) {
     try {
-      const links = parseSocialLinks(app.social_links)
-      if (links.length > 0) {
-        console.log(`[analyze] fetching social links — count=${links.length}`)
-        const fetched = await fetchAllSocialLinks(links)
-        const accessibleCount = fetched.filter(r => r.status === 'ok' && r.text).length
-        console.log(`[analyze] social fetch done — accessible=${accessibleCount}/${links.length}`)
+      const city         = (property.city ?? '').trim()
+      const searchQuery  = city ? `${app.full_name} ${city}` : app.full_name
+      console.log(`[analyze] searching public presence — query="${searchQuery}"`)
 
-        const analysis = await analyzeSocialMedia({ full_name: app.full_name, fetched })
+      const searchText = await searchDuckDuckGo(searchQuery)
+
+      if (searchText) {
+        const analysis = await analyzePublicPresence({ full_name: app.full_name, searchQuery, searchText })
 
         await supabase
           .from('applications')
-          .update({ social_media_analysis: { ...analysis, fetched_links: fetched.map(f => ({ url: f.url, status: f.status, httpStatus: f.httpStatus })) } })
+          .update({ social_media_analysis: analysis })
           .eq('id', application_id)
 
-        console.log(`[analyze] social analysis done — assessment=${analysis.assessment}`)
+        console.log(`[analyze] public presence analysis done — assessment=${analysis.assessment}`)
+      } else {
+        console.log(`[analyze] public presence search returned no usable content — skipping`)
       }
     } catch (err) {
-      console.error(`[analyze] social media analysis failed — application_id=${application_id}`, err instanceof Error ? err.message : err)
+      console.error(`[analyze] public presence analysis failed — application_id=${application_id}`, err instanceof Error ? err.message : err)
       // Non-fatal — continue with the rest of the analysis
     }
   }

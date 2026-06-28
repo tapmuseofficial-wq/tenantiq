@@ -39,7 +39,7 @@ const schema = z.object({
   reference_2_name: z.string().optional(),
   reference_2_relationship: z.string().optional(),
   reference_2_phone: z.string().optional(),
-  social_links: z.string().max(2000).optional(),
+  social_media_consent: z.boolean().default(false),
 })
 
 type FormData = z.infer<typeof schema>
@@ -49,12 +49,11 @@ interface ApplicationFormProps {
 }
 
 const STEPS = [
-  { id: 1, title: 'Personal Info',    description: 'Your contact details' },
-  { id: 2, title: 'Employment',       description: 'Income and job details' },
-  { id: 3, title: 'Rental History',   description: 'Previous tenancy info' },
-  { id: 4, title: 'References',       description: 'People who know you' },
-  { id: 5, title: 'Social Profiles',  description: 'Optional — share your online presence' },
-  { id: 6, title: 'Income Document',  description: 'Proof of income upload' },
+  { id: 1, title: 'Personal Info',   description: 'Your contact details' },
+  { id: 2, title: 'Employment',      description: 'Income and job details' },
+  { id: 3, title: 'Rental History',  description: 'Previous tenancy info' },
+  { id: 4, title: 'References',      description: 'People who know you' },
+  { id: 5, title: 'Income Document', description: 'Proof of income upload' },
 ]
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -100,8 +99,7 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
     2: ['monthly_income_reported', 'employer_name', 'time_at_job', 'reason_for_moving'],
     3: ['has_evictions', 'has_late_payments', 'has_pets'],
     4: ['reference_1_name', 'reference_1_relationship', 'reference_1_phone'],
-    5: [],  // social_links is optional — no required field validation
-    6: [],
+    5: [],
   }
 
   async function handleNext() {
@@ -410,42 +408,8 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
         </div>
       )}
 
-      {/* Step 5: Social Profiles */}
+      {/* Step 5: Income Document */}
       {step === 5 && (
-        <div className="space-y-4">
-          <div
-            className="flex items-start gap-3 rounded-xl p-4"
-            style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.18)' }}
-          >
-            <ShieldCheck className="w-5 h-5 text-violet-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-violet-300">Entirely optional</p>
-              <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                Sharing your social profiles helps landlords get to know you better and can speed up your approval. Only share what you&apos;re comfortable with — this step has no impact on your application if you leave it blank.
-              </p>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Social Profile Links
-              <span className="ml-2 text-xs text-slate-500 font-normal">Optional</span>
-            </label>
-            <textarea
-              {...register('social_links')}
-              rows={5}
-              placeholder={"https://linkedin.com/in/yourname\nhttps://github.com/yourname\nhttps://yourwebsite.com"}
-              className="w-full rounded-xl px-4 py-3 text-sm text-slate-100 resize-none focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-            />
-            <p className="text-xs text-slate-600 mt-1.5">
-              One URL per line, or comma-separated. Maximum 5 links. Only HTTPS links are fetched.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Step 6: Income Document */}
-      {step === 6 && (
         <div className="space-y-4">
           {/* Info banner */}
           <div
@@ -604,6 +568,22 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
               <span>Upload a document or check the box above to continue.</span>
             </div>
           )}
+
+          {/* Online presence consent */}
+          <label
+            className="flex items-start gap-3 p-4 rounded-xl cursor-pointer transition-all duration-200"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}
+          >
+            <input
+              type="checkbox"
+              {...register('social_media_consent')}
+              className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-blue-500 flex-shrink-0"
+            />
+            <p className="text-sm text-slate-400 leading-relaxed">
+              I consent to TenantIQ searching my public online presence as part of this screening
+              process. I understand this may include searching my name on public platforms.
+            </p>
+          </label>
 
           {error && (
             <div

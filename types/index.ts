@@ -2,6 +2,7 @@ export type SubscriptionStatus = 'free' | 'basic'
 export type VerificationStatus = 'verified' | 'unverified' | 'discrepancy' | 'no_document'
 export type Recommendation = 'approve' | 'review' | 'decline'
 export type ApplicationStatus = 'pending' | 'analyzing' | 'complete' | 'error'
+export type CertnStatus = 'pending' | 'complete' | 'failed'
 
 export interface Profile {
   id: string
@@ -90,6 +91,10 @@ export interface Application {
   error_message: string | null
   created_at: string
   analyzed_at: string | null
+  certn_case_id: string | null
+  certn_status: CertnStatus | null
+  certn_report: import('@/lib/certn').CertnReport | null
+  background_check_requested_at: string | null
 }
 
 export interface ApplicationSummary {

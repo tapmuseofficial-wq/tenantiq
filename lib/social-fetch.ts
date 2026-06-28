@@ -174,3 +174,35 @@ export async function fetchSocialUrl(rawUrl: string): Promise<SocialFetchResult>
 export async function fetchAllSocialLinks(urls: string[]): Promise<SocialFetchResult[]> {
   return Promise.all(urls.map(url => fetchSocialUrl(url)))
 }
+
+/**
+ * Search DuckDuckGo for a query and return plain-text snippets from the results
+ * page. Returns null if the request fails or returns no usable content.
+ * Used only when the tenant has given consent to a public presence search.
+ */
+export async function searchDuckDuckGo(query: string): Promise<string | null> {
+  const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 10_000)
+
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'TenantIQ/1.0 (consent-based-screening; +https://tenants-iq.com)',
+        'Accept': 'text/html',
+      },
+      redirect: 'follow',
+    })
+    clearTimeout(timer)
+
+    if (!res.ok) return null
+
+    const html = await res.text()
+    const text = htmlToText(html).slice(0, 6000)
+    return text || null
+  } catch {
+    clearTimeout(timer)
+    return null
+  }
+}

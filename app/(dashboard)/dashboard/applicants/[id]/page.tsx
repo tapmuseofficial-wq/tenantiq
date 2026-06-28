@@ -4,7 +4,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { ScoreRing } from '@/components/dashboard/score-ring'
 import { RatingPrompt } from '@/components/dashboard/rating-modal'
 import { FutureRatingPrompt } from '@/components/dashboard/future-rating-prompt'
-import { ArrowLeft, FileDown, AlertTriangle, CheckCircle, User, Briefcase, Home, Phone, Sparkles, Users, ThumbsUp, ThumbsDown, Flag } from 'lucide-react'
+import { ArrowLeft, FileDown, AlertTriangle, CheckCircle, User, Briefcase, Home, Phone, Sparkles, Users, ThumbsUp, ThumbsDown, Flag, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate, getRecommendationStyle, getVerificationStyle, calcIncomeRatio } from '@/lib/utils'
 import type { CommunityHistory, CommunityRating } from '@/lib/community-history'
@@ -442,14 +442,40 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
         </Card>
       )}
 
-      {/* ── Social Media Analysis ──────────────────────────────── */}
-      {(app.social_links || socialAnalysis) && (
+      {/* ── Public Online Presence ────────────────────────────────── */}
+      {socialAnalysis && (
         <SocialMediaSection
-          links={app.social_links as string | null}
           analysis={socialAnalysis}
           analysisComplete={app.status === 'complete'}
         />
       )}
+
+      {/* ── Background Check ─────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <h2 className="font-semibold text-slate-200 flex items-center gap-2 text-sm">
+            <ShieldCheck className="w-4 h-4 text-violet-400" />
+            Full Background &amp; Credit Check
+          </h2>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-slate-400 leading-relaxed">
+            Get a verified credit score, eviction history, and criminal record check through our trusted partner Certn.
+          </p>
+          <a
+            href="https://certn.co"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80"
+            style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)' }}
+          >
+            Order Background Check →
+          </a>
+          <p className="text-xs text-slate-500">
+            You will be redirected to Certn to complete the order. Tenant pays directly.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* ── Rating Prompt (rate now — shown when screening is complete and unrated) */}
       {app.status === 'complete' && !app.is_rated && (
@@ -608,18 +634,16 @@ type SocialAnalysis = {
 }
 
 function SocialMediaSection({
-  links,
   analysis,
   analysisComplete,
 }: {
-  links: string | null
   analysis: SocialAnalysis | null
   analysisComplete: boolean
 }) {
   const assessmentStyle: Record<string, { bg: string; border: string; text: string; label: string }> = {
-    positive:           { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.2)',  text: '#34D399', label: '✅ Positive'         },
+    positive:           { bg: 'rgba(16,185,129,0.1)',   border: 'rgba(16,185,129,0.2)',   text: '#34D399', label: '✅ Positive'         },
     neutral:            { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)', text: '#94A3B8', label: '— Neutral'          },
-    concerning:         { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.2)',   text: '#F87171', label: '⚠️ Concerning'       },
+    concerning:         { bg: 'rgba(239,68,68,0.1)',    border: 'rgba(239,68,68,0.2)',    text: '#F87171', label: '⚠️ Concerning'       },
     insufficient_data:  { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)', text: '#64748B', label: '— Insufficient data' },
   }
   const style = assessmentStyle[analysis?.assessment ?? ''] ?? assessmentStyle.insufficient_data
@@ -628,50 +652,14 @@ function SocialMediaSection({
     <Card>
       <CardHeader>
         <h2 className="font-semibold text-slate-200 flex items-center gap-2 text-sm">
-          🔍 Social Media Analysis
+          🔍 Public Online Presence
         </h2>
-        <p className="text-xs text-slate-500 mt-0.5">Tenant-provided links — content fetched and analyzed automatically</p>
+        <p className="text-xs text-slate-500 mt-0.5">Tenant consented — searched by name and city on public platforms</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Links the tenant submitted */}
-        {links && (
-          <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Links provided by applicant</p>
-            <div className="space-y-1">
-              {links.split(/[\n,]+/).map(l => l.trim()).filter(Boolean).map(url => {
-                const fetched = analysis?.fetched_links?.find(f => f.url === url)
-                const statusLabel =
-                  fetched?.status === 'ok'           ? '✓ Fetched' :
-                  fetched?.status === 'blocked'      ? '✗ Login required' :
-                  fetched?.status === 'timeout'      ? '✗ Timed out' :
-                  fetched?.status === 'ssrf_blocked' ? '✗ Invalid URL' :
-                  fetched                            ? '✗ Error' :
-                  analysisComplete                   ? '✗ Not fetched' : '…'
-                const statusColor =
-                  fetched?.status === 'ok' ? '#34D399' : '#64748B'
-                return (
-                  <div key={url} className="flex items-center gap-2">
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-400 hover:text-blue-300 truncate flex-1 transition-colors"
-                    >
-                      {url}
-                    </a>
-                    <span className="text-xs flex-shrink-0 font-medium" style={{ color: statusColor }}>
-                      {statusLabel}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Analysis results */}
         {!analysis && analysisComplete && (
-          <p className="text-sm text-slate-500">No significant public content was found or accessible at the provided URLs.</p>
+          <p className="text-sm text-slate-500">No significant public information was found for this applicant.</p>
         )}
 
         {!analysis && !analysisComplete && (
@@ -723,7 +711,7 @@ function SocialMediaSection({
 
             {/* Disclaimer */}
             <p className="text-xs text-slate-600 leading-relaxed border-t pt-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-              This analysis is based on publicly available content at the URLs the applicant voluntarily provided. Social media content should be one factor among many in your decision.
+              This analysis is based on publicly available search results. The tenant gave explicit consent to this search. Treat findings as one factor among many — search results may not be attributable to this specific person.
             </p>
           </>
         )}
