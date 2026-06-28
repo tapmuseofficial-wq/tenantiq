@@ -580,8 +580,8 @@ export function ApplicationForm({ property }: ApplicationFormProps) {
               className="mt-0.5 w-4 h-4 rounded cursor-pointer accent-blue-500 flex-shrink-0"
             />
             <p className="text-sm text-slate-400 leading-relaxed">
-              I consent to TenantIQ searching my public online presence as part of this screening
-              process. I understand this may include searching my name on public platforms.
+              I consent to TenantIQ searching public court records and my public online presence
+              as part of this screening process.
             </p>
           </label>
 

@@ -38,7 +38,7 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
   const ratio = calcIncomeRatio(effectiveIncome, property.monthly_rent)
   const breakdown = app.score_breakdown as Record<string, { score: number; max: number; explanation: string }> | null
   const communityHistory  = app.community_history   as CommunityHistory | null
-  type SocialAnalysis = { assessment: string; positive_signals: string[]; red_flags: string[]; summary: string; fetched_links?: { url: string; status: string }[] }
+  type SocialAnalysis = { assessment: string; positive_signals: string[]; red_flags: string[]; summary: string; fetched_links?: { url: string; status: string }[]; court_records?: { found: boolean; summary: string; details: string | null } }
   const socialAnalysis    = app.social_media_analysis as SocialAnalysis | null
 
   const recColors = {
@@ -450,6 +450,11 @@ export default async function ApplicantDetailPage({ params }: { params: Promise<
         />
       )}
 
+      {/* ── Public Court Records ──────────────────────────────────── */}
+      {socialAnalysis?.court_records && (
+        <CourtRecordsSection courtRecords={socialAnalysis.court_records} />
+      )}
+
       {/* ── Background Check ─────────────────────────────────────── */}
       <Card>
         <CardHeader>
@@ -623,7 +628,56 @@ function RatingCard({ rating, applicationId }: { rating: CommunityRating; applic
   )
 }
 
+// ── Court Records section (Server Component) ─────────────────────────────────
+
+function CourtRecordsSection({ courtRecords }: { courtRecords: CourtRecords }) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="font-semibold text-slate-200 flex items-center gap-2 text-sm">
+          ⚖️ Public Court Records
+        </h2>
+        <p className="text-xs text-slate-500 mt-0.5">Searched CanLII and Openroom with tenant consent</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {courtRecords.found ? (
+          <div
+            className="flex items-start gap-3 rounded-xl p-4"
+            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+          >
+            <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-400 mb-1">Records found</p>
+              <p className="text-sm text-slate-300 leading-relaxed">{courtRecords.summary}</p>
+              {courtRecords.details && (
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">{courtRecords.details}</p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-3 rounded-xl p-4"
+            style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}
+          >
+            <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <p className="text-sm font-semibold text-emerald-300">{courtRecords.summary}</p>
+          </div>
+        )}
+        <p className="text-xs text-slate-600 leading-relaxed">
+          Based on publicly available records from CanLII and Openroom. Results may be incomplete. Only records clearly attributable to this specific person should be considered.
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
 // ── Social Media Analysis section (Server Component) ────────────────────────
+
+type CourtRecords = {
+  found: boolean
+  summary: string
+  details: string | null
+}
 
 type SocialAnalysis = {
   assessment: string
@@ -631,6 +685,7 @@ type SocialAnalysis = {
   red_flags: string[]
   summary: string
   fetched_links?: { url: string; status: string }[]
+  court_records?: CourtRecords
 }
 
 function SocialMediaSection({

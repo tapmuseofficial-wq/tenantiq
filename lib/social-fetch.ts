@@ -176,6 +176,77 @@ export async function fetchAllSocialLinks(urls: string[]): Promise<SocialFetchRe
 }
 
 /**
+ * Fetch CanLII case search results for a full name.
+ * Uses the public free-tier API — returns null on any failure.
+ */
+export async function fetchCanLII(fullName: string): Promise<string | null> {
+  const url = `https://api.canlii.org/v1/caseBrowse/en/?api_key=free&fullText=${encodeURIComponent(fullName)}&language=en`
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 10_000)
+
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'TenantIQ/1.0 (consent-based-screening; +https://tenants-iq.com)',
+        'Accept': 'application/json',
+      },
+    })
+    clearTimeout(timer)
+
+    if (!res.ok) return null
+
+    const json = await res.json() as {
+      cases?: Array<{ title?: string; citation?: string }>
+    }
+    const cases = json.cases ?? []
+    if (cases.length === 0) return null
+
+    const lines = cases.slice(0, 20).map(c => {
+      const title    = c.title    ?? 'Untitled case'
+      const citation = c.citation ?? ''
+      return citation ? `${title} [${citation}]` : title
+    })
+
+    return `CanLII results for "${fullName}":\n${lines.join('\n')}`
+  } catch {
+    clearTimeout(timer)
+    return null
+  }
+}
+
+/**
+ * Fetch Openroom eviction record search results for a full name.
+ * Parses the public HTML search page — returns null on any failure.
+ */
+export async function fetchOpenroom(fullName: string): Promise<string | null> {
+  const url = `https://openroom.ca/search?q=${encodeURIComponent(fullName)}`
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 10_000)
+
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'TenantIQ/1.0 (consent-based-screening; +https://tenants-iq.com)',
+        'Accept': 'text/html',
+      },
+      redirect: 'follow',
+    })
+    clearTimeout(timer)
+
+    if (!res.ok) return null
+
+    const html  = await res.text()
+    const text  = htmlToText(html).slice(0, 4000)
+    return text || null
+  } catch {
+    clearTimeout(timer)
+    return null
+  }
+}
+
+/**
  * Search DuckDuckGo for a query and return plain-text snippets from the results
  * page. Returns null if the request fails or returns no usable content.
  * Used only when the tenant has given consent to a public presence search.

@@ -1,11 +1,17 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { extractIncomeFromDocument, screenApplicant, analyzePublicPresence } from '@/lib/anthropic'
+import {
+  extractIncomeFromDocument,
+  screenApplicant,
+  analyzePublicPresence,
+  analyzeCourtRecords,
+  type SocialMediaAnalysisResult,
+} from '@/lib/anthropic'
 import {
   lookupCommunityHistory,
   adjustScoreForCommunity,
   type CommunityHistory,
 } from '@/lib/community-history'
-import { searchDuckDuckGo } from '@/lib/social-fetch'
+import { searchDuckDuckGo, fetchCanLII, fetchOpenroom } from '@/lib/social-fetch'
 
 export async function runAnalysis(application_id: string): Promise<void> {
   console.log(`[analyze] starting — application_id=${application_id}`)
@@ -118,29 +124,53 @@ export async function runAnalysis(application_id: string): Promise<void> {
     return lines.join('\n')
   }
 
-  // Step 3: Public presence search — runs only when tenant gave consent
+  // Step 3: Public presence + court records — runs only when tenant gave consent
   if (app.social_media_consent) {
     try {
-      const city         = (property.city ?? '').trim()
-      const searchQuery  = city ? `${app.full_name} ${city}` : app.full_name
-      console.log(`[analyze] searching public presence — query="${searchQuery}"`)
+      const city        = (property.city ?? '').trim()
+      const searchQuery = city ? `${app.full_name} ${city}` : app.full_name
+      console.log(`[analyze] running consent-based searches — name="${app.full_name}" city="${city}"`)
 
-      const searchText = await searchDuckDuckGo(searchQuery)
+      // All three sources fetched concurrently
+      const [searchText, canliiText, openroomText] = await Promise.all([
+        searchDuckDuckGo(searchQuery),
+        fetchCanLII(app.full_name),
+        fetchOpenroom(app.full_name),
+      ])
 
+      console.log(`[analyze] searches done — ddg=${!!searchText} canlii=${!!canliiText} openroom=${!!openroomText}`)
+
+      // Public presence analysis (DuckDuckGo)
+      let presenceAnalysis: SocialMediaAnalysisResult | null = null
       if (searchText) {
-        const analysis = await analyzePublicPresence({ full_name: app.full_name, searchQuery, searchText })
-
-        await supabase
-          .from('applications')
-          .update({ social_media_analysis: analysis })
-          .eq('id', application_id)
-
-        console.log(`[analyze] public presence analysis done — assessment=${analysis.assessment}`)
-      } else {
-        console.log(`[analyze] public presence search returned no usable content — skipping`)
+        presenceAnalysis = await analyzePublicPresence({ full_name: app.full_name, searchQuery, searchText })
+        console.log(`[analyze] public presence done — assessment=${presenceAnalysis.assessment}`)
       }
+
+      // Court records analysis (CanLII + Openroom)
+      const courtRecords = await analyzeCourtRecords({
+        full_name:    app.full_name,
+        city,
+        canliiText:   canliiText   ?? '',
+        openroomText: openroomText ?? '',
+      })
+      console.log(`[analyze] court records done — found=${courtRecords.found}`)
+
+      // Single combined write
+      const combinedAnalysis: SocialMediaAnalysisResult = {
+        assessment:       presenceAnalysis?.assessment       ?? 'insufficient_data',
+        positive_signals: presenceAnalysis?.positive_signals ?? [],
+        red_flags:        presenceAnalysis?.red_flags        ?? [],
+        summary:          presenceAnalysis?.summary          ?? 'No significant public information found.',
+        court_records:    courtRecords,
+      }
+
+      await supabase
+        .from('applications')
+        .update({ social_media_analysis: combinedAnalysis })
+        .eq('id', application_id)
     } catch (err) {
-      console.error(`[analyze] public presence analysis failed — application_id=${application_id}`, err instanceof Error ? err.message : err)
+      console.error(`[analyze] consent-based searches failed — application_id=${application_id}`, err instanceof Error ? err.message : err)
       // Non-fatal — continue with the rest of the analysis
     }
   }

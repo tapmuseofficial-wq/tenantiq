@@ -259,11 +259,18 @@ Respond with ONLY the JSON object.`,
 
 // ── Social media analysis ─────────────────────────────────────────────────────
 
+export interface CourtRecordsResult {
+  found: boolean
+  summary: string
+  details: string | null
+}
+
 export interface SocialMediaAnalysisResult {
   assessment: 'positive' | 'neutral' | 'concerning' | 'insufficient_data'
   positive_signals: string[]
   red_flags: string[]
   summary: string
+  court_records?: CourtRecordsResult
 }
 
 interface FetchedLink {
@@ -427,4 +434,65 @@ Respond with ONLY the JSON object.`,
   }
 
   return JSON.parse(jsonMatch[0]) as SocialMediaAnalysisResult
+}
+
+// ── Court records analysis ────────────────────────────────────────────────────
+
+export async function analyzeCourtRecords(params: {
+  full_name: string
+  city: string
+  canliiText: string
+  openroomText: string
+}): Promise<CourtRecordsResult> {
+  const hasContent = params.canliiText.trim().length > 0 || params.openroomText.trim().length > 0
+  if (!hasContent) {
+    return { found: false, summary: 'No public court records found.', details: null }
+  }
+
+  const anthropic = getClient()
+
+  const safeName     = params.full_name.slice(0, 100)
+  const safeCity     = params.city.slice(0, 100)
+  const safeCanlii   = params.canliiText.slice(0, 3000)
+  const safeOpenroom = params.openroomText.slice(0, 3000)
+
+  const response = await anthropic.messages.create({
+    model:      'claude-haiku-4-5-20251001',
+    max_tokens: 512,
+    system: `You are analyzing public court records for a tenant screening report.
+Be conservative — only flag records clearly attributable to this specific person.
+Common names appear in many unrelated cases; never attribute a record unless there is
+strong contextual evidence (matching city, specific identifying details, etc.).
+Respond ONLY with valid JSON matching the specified schema.`,
+    messages: [
+      {
+        role: 'user',
+        content: `Analyze these public court record search results for a tenant named <user_input>${safeName}</user_input>${safeCity ? ` from ${safeCity}` : ''}.
+
+CanLII (Canadian legal decisions):
+<records>${safeCanlii || 'No results returned.'}</records>
+
+Openroom (eviction records):
+<records>${safeOpenroom || 'No results returned.'}</records>
+
+Identify any eviction orders, Landlord Tenant Board decisions, unpaid rent judgments, or other relevant court decisions clearly attributable to this specific person.
+
+Return a JSON object with EXACTLY these fields:
+{
+  "found": <boolean — true only if clearly relevant records exist for this specific person>,
+  "summary": "<1-2 sentences. If nothing relevant found, say: No public court records found.>",
+  "details": <string listing specific case names/citations if found, otherwise null>
+}
+Respond with ONLY the JSON.`,
+      },
+    ],
+  })
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : ''
+  const match = text.match(/\{[\s\S]*\}/)
+  if (!match) {
+    return { found: false, summary: 'No public court records found.', details: null }
+  }
+
+  return JSON.parse(match[0]) as CourtRecordsResult
 }
