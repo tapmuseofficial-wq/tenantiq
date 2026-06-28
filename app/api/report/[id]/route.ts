@@ -51,7 +51,11 @@ export async function GET(
       return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
 
-    const property = application.properties as { name: string; address: string; monthly_rent: number; landlord_id: string }
+    const property = application.properties as { name: string; address: string; monthly_rent: number; landlord_id: string } | null
+
+    if (!property) {
+      return NextResponse.json({ error: 'Property not found' }, { status: 404 })
+    }
 
     if (property.landlord_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -59,10 +63,18 @@ export async function GET(
 
     console.log(`[report] rendering PDF — application_id=${id} name="${application.full_name}"`)
 
-    const pdfBuffer = await renderToBuffer(
+    // Split into two steps so logs distinguish a JSX tree crash from a layout/render crash.
+    let element: unknown
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      createElement(ReportDocument, { application: application as any, property }) as any
-    )
+      element = createElement(ReportDocument, { application: application as any, property })
+    } catch (e) {
+      console.error('[report] createElement failed —', e)
+      return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 })
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfBuffer = await renderToBuffer(element as any)
 
     console.log(`[report] PDF rendered — bytes=${pdfBuffer.byteLength}`)
 
