@@ -57,10 +57,14 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    console.log(`[report] rendering PDF — application_id=${id} name="${application.full_name}"`)
+
     const pdfBuffer = await renderToBuffer(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       createElement(ReportDocument, { application: application as any, property }) as any
     )
+
+    console.log(`[report] PDF rendered — bytes=${pdfBuffer.byteLength}`)
 
     const safeName = application.full_name.replace(/[^a-z0-9]/gi, '_').toLowerCase()
     const uint8 = new Uint8Array(pdfBuffer)
@@ -72,7 +76,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('PDF generation error:', error instanceof Error ? error.message : String(error))
+    console.error('[report] PDF generation failed —', error)
     return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 })
   }
 }

@@ -5,16 +5,93 @@ import {
   View,
   StyleSheet,
 } from '@react-pdf/renderer'
-import { Application } from '@/types'
 
-const styles = StyleSheet.create({
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface ScoreItem { score: number; max: number; explanation: string }
+
+interface CourtRecords {
+  found: boolean
+  summary: string
+  details: string | null
+}
+
+interface SocialAnalysis {
+  assessment: string
+  positive_signals: string[]
+  red_flags: string[]
+  summary: string
+  court_records?: CourtRecords
+}
+
+interface CommunityMatch {
+  rating: 'positive' | 'negative'
+  description: string | null
+  created_at: string
+  property_address: string | null
+  match_reason: string
+  is_disputed: boolean
+}
+
+interface CommunityHistory {
+  positive_count: number
+  negative_count: number
+  matches: CommunityMatch[]
+}
+
+export interface ReportProps {
+  application: {
+    full_name: string
+    email: string
+    phone: string
+    monthly_income_reported: number
+    income_verified: number | null
+    income_verification_status: string | null
+    income_verification_notes: string | null
+    employer_name: string
+    time_at_job: string
+    reason_for_moving: string
+    has_evictions: boolean
+    eviction_explanation: string | null
+    has_late_payments: boolean
+    late_payment_explanation: string | null
+    has_pets: boolean
+    pet_details: string | null
+    reference_1_name: string | null
+    reference_1_relationship: string | null
+    reference_1_phone: string | null
+    reference_2_name: string | null
+    reference_2_relationship: string | null
+    reference_2_phone: string | null
+    score: number | null
+    score_breakdown: Record<string, ScoreItem> | null
+    red_flags: string[] | null
+    positive_factors: string[] | null
+    interview_questions: string[] | null
+    recommendation: string | null
+    recommendation_reason: string | null
+    ai_summary: string | null
+    status: string
+    created_at: string
+    community_history: CommunityHistory | null
+    social_media_analysis: SocialAnalysis | null
+    social_media_consent: boolean | null
+  }
+  property: { name: string; address: string | null; monthly_rent: number }
+}
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+const s = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
     fontSize: 10,
     padding: 48,
+    paddingBottom: 72,
     backgroundColor: '#ffffff',
     color: '#1e293b',
   },
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -24,70 +101,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: '#1d4ed8',
   },
-  logo: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1d4ed8',
-  },
-  headerRight: {
-    alignItems: 'flex-end',
-  },
-  headerLabel: {
-    fontSize: 8,
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  headerValue: {
-    fontSize: 10,
-    color: '#1e293b',
-    fontFamily: 'Helvetica-Bold',
-  },
-  scoreSection: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 24,
-  },
+  logo: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#1d4ed8' },
+  headerLabel: { fontSize: 8, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 },
+  headerValue: { fontSize: 10, color: '#1e293b', fontFamily: 'Helvetica-Bold' },
+  headerRight: { alignItems: 'flex-end' },
+  // Score row
+  scoreSection: { flexDirection: 'row', marginBottom: 20 },
   scoreBox: {
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
     width: 100,
+    marginRight: 16,
   },
-  scoreNumber: {
-    fontSize: 36,
-    fontFamily: 'Helvetica-Bold',
-  },
-  scoreLabel: {
-    fontSize: 8,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  recommendationBox: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 16,
-  },
-  recommendationLabel: {
-    fontSize: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  recommendationValue: {
-    fontSize: 18,
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
-  },
-  recommendationReason: {
-    fontSize: 9,
-    color: '#475569',
-    lineHeight: 1.5,
-  },
-  section: {
-    marginBottom: 20,
-  },
+  scoreNumber: { fontSize: 36, fontFamily: 'Helvetica-Bold' },
+  scoreSubLabel: { fontSize: 8, color: '#64748b', marginTop: 2 },
+  recBox: { flex: 1, borderRadius: 10, padding: 16 },
+  recLabel: { fontSize: 8, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
+  recValue: { fontSize: 18, fontFamily: 'Helvetica-Bold', marginBottom: 6 },
+  recReason: { fontSize: 9, color: '#475569', lineHeight: 1.5 },
+  // Sections
+  section: { marginBottom: 18 },
   sectionTitle: {
     fontSize: 11,
     fontFamily: 'Helvetica-Bold',
@@ -97,89 +132,47 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  field: {
-    width: '48%',
-    marginBottom: 8,
-  },
-  fieldFull: {
-    width: '100%',
-    marginBottom: 8,
-  },
-  fieldLabel: {
-    fontSize: 8,
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  fieldValue: {
-    fontSize: 10,
-    color: '#1e293b',
-  },
+  sectionTitleRed:   { color: '#dc2626' },
+  sectionTitleGreen: { color: '#16a34a' },
+  sectionTitleGray:  { color: '#64748b' },
+  // Fields
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  field: { width: '50%', marginBottom: 8, paddingRight: 8 },
+  fieldFull: { width: '100%', marginBottom: 8 },
+  fieldLabel: { fontSize: 8, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  fieldValue: { fontSize: 10, color: '#1e293b' },
+  // Score breakdown
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    paddingVertical: 6,
+    marginBottom: 6,
+    paddingVertical: 5,
     paddingHorizontal: 8,
     backgroundColor: '#f8fafc',
-    borderRadius: 6,
+    borderRadius: 5,
   },
-  scoreRowLabel: {
-    flex: 1,
-    fontSize: 9,
-    color: '#475569',
-  },
-  scoreRowBar: {
-    width: 80,
-    height: 6,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 3,
-    marginRight: 8,
-  },
-  scoreRowFill: {
-    height: 6,
-    borderRadius: 3,
-  },
-  scoreRowValue: {
-    width: 36,
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    textAlign: 'right',
-  },
-  listItem: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  bullet: {
-    width: 12,
-    fontSize: 9,
-    color: '#64748b',
-  },
-  listText: {
-    flex: 1,
-    fontSize: 9,
-    color: '#475569',
-    lineHeight: 1.5,
-  },
-  verificationBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-  },
-  verificationText: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-  },
+  scoreRowLabel: { flex: 1, fontSize: 9, color: '#475569' },
+  scoreRowBar: { width: 80, height: 5, backgroundColor: '#e2e8f0', borderRadius: 3, marginRight: 8 },
+  scoreRowFill: { height: 5, borderRadius: 3 },
+  scoreRowValue: { width: 36, fontSize: 9, fontFamily: 'Helvetica-Bold', textAlign: 'right' },
+  // Lists
+  listItem: { flexDirection: 'row', marginBottom: 4 },
+  bullet: { width: 14, fontSize: 9 },
+  listText: { flex: 1, fontSize: 9, color: '#475569', lineHeight: 1.5 },
+  // Badges
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, alignSelf: 'flex-start' },
+  badgeText: { fontSize: 9, fontFamily: 'Helvetica-Bold' },
+  // Info boxes
+  infoBox: { borderRadius: 6, padding: 10, marginBottom: 8 },
+  infoBoxText: { fontSize: 9, lineHeight: 1.5 },
+  // Two-column layout
+  cols: { flexDirection: 'row' },
+  col: { flex: 1, paddingRight: 8 },
+  colRight: { flex: 1, paddingLeft: 8 },
+  // Footer
   footer: {
     position: 'absolute',
-    bottom: 32,
+    bottom: 28,
     left: 48,
     right: 48,
     flexDirection: 'row',
@@ -188,164 +181,184 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
   },
-  footerText: {
-    fontSize: 8,
-    color: '#94a3b8',
-  },
+  footerText: { fontSize: 8, color: '#94a3b8' },
 })
 
-function getRecommendationColors(rec: string | null) {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getRecColors(rec: string | null) {
   if (rec === 'approve') return { bg: '#f0fdf4', text: '#16a34a', label: 'APPROVE' }
-  if (rec === 'review') return { bg: '#fefce8', text: '#ca8a04', label: 'REVIEW FURTHER' }
-  return { bg: '#fef2f2', text: '#dc2626', label: 'DECLINE' }
+  if (rec === 'review')  return { bg: '#fefce8', text: '#ca8a04', label: 'REVIEW FURTHER' }
+  return                        { bg: '#fef2f2', text: '#dc2626', label: 'DECLINE' }
 }
 
 function getScoreColor(score: number | null) {
-  if (!score) return '#94a3b8'
-  if (score >= 75) return '#16a34a'
-  if (score >= 55) return '#ca8a04'
-  return '#dc2626'
+  if (score == null) return '#94a3b8'
+  if (score >= 75)   return '#16a34a'
+  if (score >= 55)   return '#ca8a04'
+  return                    '#dc2626'
 }
 
-function getVerificationColors(status: string | null) {
-  if (status === 'verified') return { bg: '#f0fdf4', text: '#16a34a', label: 'VERIFIED' }
-  if (status === 'discrepancy') return { bg: '#fef2f2', text: '#dc2626', label: 'DISCREPANCY DETECTED' }
-  if (status === 'unverified') return { bg: '#f8fafc', text: '#64748b', label: 'UNVERIFIED' }
-  return { bg: '#f8fafc', text: '#94a3b8', label: 'NO DOCUMENT' }
+function getVerColors(status: string | null) {
+  if (status === 'verified')    return { bg: '#f0fdf4', text: '#16a34a', label: 'VERIFIED' }
+  if (status === 'discrepancy') return { bg: '#fef2f2', text: '#dc2626', label: 'DISCREPANCY' }
+  if (status === 'unverified')  return { bg: '#f8fafc', text: '#64748b', label: 'UNVERIFIED' }
+  return                               { bg: '#f8fafc', text: '#94a3b8', label: 'NO DOCUMENT' }
 }
 
-interface ReportProps {
-  application: Application
-  property: { name: string; address: string | null; monthly_rent: number }
+function fmt(n: number | null | undefined): string {
+  if (n == null) return '—'
+  return n.toLocaleString()
 }
+
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('en-CA')
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function ReportDocument({ application: a, property }: ReportProps) {
-  const recColors = getRecommendationColors(a.recommendation)
-  const verColors = getVerificationColors(a.income_verification_status)
+  const recColors  = getRecColors(a.recommendation)
+  const verColors  = getVerColors(a.income_verification_status)
   const scoreColor = getScoreColor(a.score)
-  const breakdown = a.score_breakdown
 
   const effectiveIncome = a.income_verified ?? a.monthly_income_reported
-  const ratio = property.monthly_rent > 0 ? (effectiveIncome / property.monthly_rent).toFixed(1) : '—'
+  const ratio = property.monthly_rent > 0
+    ? (effectiveIncome / property.monthly_rent).toFixed(1) + 'x'
+    : '—'
+
+  const breakdown = a.score_breakdown
+  const redFlags       = a.red_flags       ?? []
+  const positiveFactors = a.positive_factors ?? []
+  const interviewQs    = a.interview_questions ?? []
+  const communityHistory = a.community_history as CommunityHistory | null
+  const socialAnalysis   = a.social_media_analysis as SocialAnalysis | null
+  const courtRecords     = socialAnalysis?.court_records ?? null
+
+  const hasRedOrPositive = redFlags.length > 0 || positiveFactors.length > 0
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={styles.header}>
+      <Page size="A4" style={s.page}>
+
+        {/* ── Header ── */}
+        <View style={s.header}>
           <View>
-            <Text style={styles.logo}>TenantIQ</Text>
-            <Text style={[styles.headerLabel, { marginTop: 4 }]}>Tenant Screening Report</Text>
+            <Text style={s.logo}>TenantIQ</Text>
+            <Text style={[s.headerLabel, { marginTop: 4 }]}>Tenant Screening Report</Text>
           </View>
-          <View style={styles.headerRight}>
-            <Text style={styles.headerLabel}>Property</Text>
-            <Text style={styles.headerValue}>{property.name}</Text>
-            <Text style={[styles.headerLabel, { marginTop: 8 }]}>Report Date</Text>
-            <Text style={styles.headerValue}>{new Date().toLocaleDateString('en-CA')}</Text>
-            <Text style={[styles.headerLabel, { marginTop: 8 }]}>Monthly Rent</Text>
-            <Text style={styles.headerValue}>${property.monthly_rent.toLocaleString()}/mo</Text>
-          </View>
-        </View>
-
-        {/* Score + Recommendation */}
-        <View style={styles.scoreSection}>
-          <View style={[styles.scoreBox, { backgroundColor: `${scoreColor}18`, borderWidth: 2, borderColor: scoreColor }]}>
-            <Text style={[styles.scoreNumber, { color: scoreColor }]}>{a.score ?? '—'}</Text>
-            <Text style={styles.scoreLabel}>out of 100</Text>
-          </View>
-          <View style={[styles.recommendationBox, { backgroundColor: recColors.bg }]}>
-            <Text style={[styles.recommendationLabel, { color: recColors.text }]}>Recommendation</Text>
-            <Text style={[styles.recommendationValue, { color: recColors.text }]}>{recColors.label}</Text>
-            <Text style={styles.recommendationReason}>{a.recommendation_reason || 'Analysis pending'}</Text>
+          <View style={s.headerRight}>
+            <Text style={s.headerLabel}>Property</Text>
+            <Text style={s.headerValue}>{property.name}</Text>
+            <Text style={[s.headerLabel, { marginTop: 6 }]}>Monthly Rent</Text>
+            <Text style={s.headerValue}>${fmt(property.monthly_rent)}/mo</Text>
+            <Text style={[s.headerLabel, { marginTop: 6 }]}>Report Date</Text>
+            <Text style={s.headerValue}>{fmtDate(new Date().toISOString())}</Text>
           </View>
         </View>
 
-        {/* AI Summary */}
-        {a.ai_summary && (
-          <View style={[styles.section, { backgroundColor: '#f8fafc', borderRadius: 8, padding: 12, marginBottom: 20 }]}>
-            <Text style={[styles.sectionTitle, { borderBottomWidth: 0, marginBottom: 4 }]}>Summary</Text>
+        {/* ── Score + Recommendation ── */}
+        <View style={s.scoreSection}>
+          <View style={[s.scoreBox, { backgroundColor: scoreColor + '18', borderWidth: 2, borderColor: scoreColor }]}>
+            <Text style={[s.scoreNumber, { color: scoreColor }]}>
+              {a.score != null ? String(a.score) : '—'}
+            </Text>
+            <Text style={s.scoreSubLabel}>out of 100</Text>
+          </View>
+          <View style={[s.recBox, { backgroundColor: recColors.bg }]}>
+            <Text style={[s.recLabel, { color: recColors.text }]}>Recommendation</Text>
+            <Text style={[s.recValue, { color: recColors.text }]}>{recColors.label}</Text>
+            <Text style={s.recReason}>{a.recommendation_reason || 'Analysis pending'}</Text>
+          </View>
+        </View>
+
+        {/* ── AI Summary ── */}
+        {!!a.ai_summary && (
+          <View style={[s.section, { backgroundColor: '#f8fafc', borderRadius: 8, padding: 12 }]}>
+            <Text style={[s.sectionTitle, { borderBottomWidth: 0, marginBottom: 4 }]}>AI Summary</Text>
             <Text style={{ fontSize: 9, color: '#475569', lineHeight: 1.6 }}>{a.ai_summary}</Text>
           </View>
         )}
 
-        {/* Applicant Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Applicant Information</Text>
-          <View style={styles.grid}>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Full Name</Text>
-              <Text style={styles.fieldValue}>{a.full_name}</Text>
+        {/* ── Applicant Info ── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Applicant Information</Text>
+          <View style={s.grid}>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Full Name</Text>
+              <Text style={s.fieldValue}>{a.full_name}</Text>
             </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Email</Text>
-              <Text style={styles.fieldValue}>{a.email}</Text>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Email</Text>
+              <Text style={s.fieldValue}>{a.email}</Text>
             </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Phone</Text>
-              <Text style={styles.fieldValue}>{a.phone}</Text>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Phone</Text>
+              <Text style={s.fieldValue}>{a.phone}</Text>
             </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Applied</Text>
-              <Text style={styles.fieldValue}>{new Date(a.created_at).toLocaleDateString('en-CA')}</Text>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Applied</Text>
+              <Text style={s.fieldValue}>{fmtDate(a.created_at)}</Text>
             </View>
           </View>
         </View>
 
-        {/* Income & Employment */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Income & Employment</Text>
-          <View style={styles.grid}>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Self-Reported Income</Text>
-              <Text style={styles.fieldValue}>${a.monthly_income_reported.toLocaleString()}/mo</Text>
+        {/* ── Income & Employment ── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Income & Employment</Text>
+          <View style={s.grid}>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Self-Reported Income</Text>
+              <Text style={s.fieldValue}>${fmt(a.monthly_income_reported)}/mo</Text>
             </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Verified Income</Text>
-              <Text style={styles.fieldValue}>
-                {a.income_verified ? `$${a.income_verified.toLocaleString()}/mo` : 'Not verified'}
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Verified Income</Text>
+              <Text style={s.fieldValue}>
+                {a.income_verified != null ? `$${fmt(a.income_verified)}/mo` : 'Not verified'}
               </Text>
             </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Income-to-Rent Ratio</Text>
-              <Text style={styles.fieldValue}>{ratio}x</Text>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Income-to-Rent Ratio</Text>
+              <Text style={s.fieldValue}>{ratio}</Text>
             </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Income Verification</Text>
-              <View style={[styles.verificationBadge, { backgroundColor: verColors.bg }]}>
-                <Text style={[styles.verificationText, { color: verColors.text }]}>{verColors.label}</Text>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Income Verification</Text>
+              <View style={[s.badge, { backgroundColor: verColors.bg }]}>
+                <Text style={[s.badgeText, { color: verColors.text }]}>{verColors.label}</Text>
               </View>
             </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Employer</Text>
-              <Text style={styles.fieldValue}>{a.employer_name}</Text>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Employer</Text>
+              <Text style={s.fieldValue}>{a.employer_name}</Text>
             </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Time at Job</Text>
-              <Text style={styles.fieldValue}>{a.time_at_job}</Text>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Time at Job</Text>
+              <Text style={s.fieldValue}>{a.time_at_job}</Text>
             </View>
-            <View style={styles.fieldFull}>
-              <Text style={styles.fieldLabel}>Reason for Moving</Text>
-              <Text style={styles.fieldValue}>{a.reason_for_moving}</Text>
+            <View style={s.fieldFull}>
+              <Text style={s.fieldLabel}>Reason for Moving</Text>
+              <Text style={s.fieldValue}>{a.reason_for_moving}</Text>
             </View>
           </View>
         </View>
 
-        {/* Score Breakdown */}
-        {breakdown && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Score Breakdown</Text>
+        {/* ── Score Breakdown ── */}
+        {!!breakdown && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Score Breakdown</Text>
             {Object.entries(breakdown).map(([key, item]) => {
               const pct = item.max > 0 ? item.score / item.max : 0
               const fillColor = pct >= 0.75 ? '#16a34a' : pct >= 0.5 ? '#ca8a04' : '#dc2626'
               const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
               return (
-                <View key={key} style={styles.scoreRow}>
-                  <Text style={styles.scoreRowLabel}>{label}</Text>
-                  <View style={styles.scoreRowBar}>
-                    <View style={[styles.scoreRowFill, { width: `${pct * 100}%`, backgroundColor: fillColor }]} />
+                <View key={key} style={s.scoreRow}>
+                  <Text style={s.scoreRowLabel}>{label}</Text>
+                  <View style={s.scoreRowBar}>
+                    <View style={[s.scoreRowFill, { width: Math.round(pct * 100) + '%', backgroundColor: fillColor }]} />
                   </View>
-                  <Text style={[styles.scoreRowValue, { color: fillColor }]}>
-                    {item.score}/{item.max}
+                  <Text style={[s.scoreRowValue, { color: fillColor }]}>
+                    {String(item.score)}/{String(item.max)}
                   </Text>
                 </View>
               )
@@ -353,27 +366,27 @@ export function ReportDocument({ application: a, property }: ReportProps) {
           </View>
         )}
 
-        {/* Red Flags & Positives */}
-        {(a.red_flags?.length || a.positive_factors?.length) && (
-          <View style={{ flexDirection: 'row', gap: 16, marginBottom: 20 }}>
-            {a.red_flags && a.red_flags.length > 0 && (
-              <View style={[styles.section, { flex: 1, marginBottom: 0 }]}>
-                <Text style={[styles.sectionTitle, { color: '#dc2626' }]}>Red Flags</Text>
-                {a.red_flags.map((flag, i) => (
-                  <View key={i} style={styles.listItem}>
-                    <Text style={[styles.bullet, { color: '#dc2626' }]}>•</Text>
-                    <Text style={styles.listText}>{flag}</Text>
+        {/* ── Red Flags & Positive Factors ── */}
+        {hasRedOrPositive && (
+          <View style={[s.cols, { marginBottom: 18 }]}>
+            {redFlags.length > 0 && (
+              <View style={s.col}>
+                <Text style={[s.sectionTitle, s.sectionTitleRed]}>Red Flags</Text>
+                {redFlags.map((flag, i) => (
+                  <View key={i} style={s.listItem}>
+                    <Text style={[s.bullet, { color: '#dc2626' }]}>•</Text>
+                    <Text style={s.listText}>{flag}</Text>
                   </View>
                 ))}
               </View>
             )}
-            {a.positive_factors && a.positive_factors.length > 0 && (
-              <View style={[styles.section, { flex: 1, marginBottom: 0 }]}>
-                <Text style={[styles.sectionTitle, { color: '#16a34a' }]}>Positive Factors</Text>
-                {a.positive_factors.map((factor, i) => (
-                  <View key={i} style={styles.listItem}>
-                    <Text style={[styles.bullet, { color: '#16a34a' }]}>•</Text>
-                    <Text style={styles.listText}>{factor}</Text>
+            {positiveFactors.length > 0 && (
+              <View style={redFlags.length > 0 ? s.colRight : s.col}>
+                <Text style={[s.sectionTitle, s.sectionTitleGreen]}>Positive Factors</Text>
+                {positiveFactors.map((factor, i) => (
+                  <View key={i} style={s.listItem}>
+                    <Text style={[s.bullet, { color: '#16a34a' }]}>•</Text>
+                    <Text style={s.listText}>{factor}</Text>
                   </View>
                 ))}
               </View>
@@ -381,74 +394,188 @@ export function ReportDocument({ application: a, property }: ReportProps) {
           </View>
         )}
 
-        {/* Rental History */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Rental History</Text>
-          <View style={styles.grid}>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Evictions</Text>
-              <Text style={[styles.fieldValue, { color: a.has_evictions ? '#dc2626' : '#16a34a' }]}>
+        {/* ── Rental History ── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Rental History</Text>
+          <View style={s.grid}>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Evictions</Text>
+              <Text style={[s.fieldValue, { color: a.has_evictions ? '#dc2626' : '#16a34a' }]}>
                 {a.has_evictions ? 'Yes' : 'None reported'}
               </Text>
-              {a.has_evictions && a.eviction_explanation && (
-                <Text style={[styles.listText, { marginTop: 2 }]}>{a.eviction_explanation}</Text>
+              {a.has_evictions && !!a.eviction_explanation && (
+                <Text style={[s.listText, { marginTop: 2 }]}>{a.eviction_explanation}</Text>
               )}
             </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Late Payments</Text>
-              <Text style={[styles.fieldValue, { color: a.has_late_payments ? '#ca8a04' : '#16a34a' }]}>
+            <View style={s.field}>
+              <Text style={s.fieldLabel}>Late Payments</Text>
+              <Text style={[s.fieldValue, { color: a.has_late_payments ? '#ca8a04' : '#16a34a' }]}>
                 {a.has_late_payments ? 'Yes' : 'None reported'}
               </Text>
-              {a.has_late_payments && a.late_payment_explanation && (
-                <Text style={[styles.listText, { marginTop: 2 }]}>{a.late_payment_explanation}</Text>
+              {a.has_late_payments && !!a.late_payment_explanation && (
+                <Text style={[s.listText, { marginTop: 2 }]}>{a.late_payment_explanation}</Text>
+              )}
+            </View>
+            {a.has_pets && (
+              <View style={s.field}>
+                <Text style={s.fieldLabel}>Pets</Text>
+                <Text style={[s.fieldValue, { color: '#ca8a04' }]}>Yes</Text>
+                {!!a.pet_details && (
+                  <Text style={[s.listText, { marginTop: 2 }]}>{a.pet_details}</Text>
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* ── References ── */}
+        {(!!a.reference_1_name || !!a.reference_2_name) && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>References</Text>
+            <View style={s.grid}>
+              {!!a.reference_1_name && (
+                <View style={s.field}>
+                  <Text style={s.fieldLabel}>Reference 1</Text>
+                  <Text style={s.fieldValue}>{a.reference_1_name}</Text>
+                  <Text style={[s.listText, { marginTop: 2 }]}>
+                    {a.reference_1_relationship || ''}{a.reference_1_relationship && a.reference_1_phone ? ' · ' : ''}{a.reference_1_phone || ''}
+                  </Text>
+                </View>
+              )}
+              {!!a.reference_2_name && (
+                <View style={s.field}>
+                  <Text style={s.fieldLabel}>Reference 2</Text>
+                  <Text style={s.fieldValue}>{a.reference_2_name}</Text>
+                  <Text style={[s.listText, { marginTop: 2 }]}>
+                    {a.reference_2_relationship || ''}{a.reference_2_relationship && a.reference_2_phone ? ' · ' : ''}{a.reference_2_phone || ''}
+                  </Text>
+                </View>
               )}
             </View>
           </View>
-        </View>
+        )}
 
-        {/* References */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>References</Text>
-          <View style={styles.grid}>
-            {a.reference_1_name && (
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Reference 1</Text>
-                <Text style={styles.fieldValue}>{a.reference_1_name}</Text>
-                <Text style={[styles.listText, { marginTop: 2 }]}>
-                  {a.reference_1_relationship} · {a.reference_1_phone}
+        {/* ── Community History ── */}
+        {!!communityHistory && communityHistory.matches.length > 0 && (
+          <View style={s.section}>
+            <Text style={[s.sectionTitle, communityHistory.negative_count > 0 ? s.sectionTitleRed : s.sectionTitleGreen]}>
+              Community History
+            </Text>
+            {communityHistory.negative_count > 0 && (
+              <View style={[s.infoBox, { backgroundColor: '#fef2f2' }]}>
+                <Text style={[s.infoBoxText, { color: '#dc2626', fontFamily: 'Helvetica-Bold' }]}>
+                  {communityHistory.negative_count} negative rating{communityHistory.negative_count !== 1 ? 's' : ''} from TenantIQ landlords
                 </Text>
               </View>
             )}
-            {a.reference_2_name && (
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Reference 2</Text>
-                <Text style={styles.fieldValue}>{a.reference_2_name}</Text>
-                <Text style={[styles.listText, { marginTop: 2 }]}>
-                  {a.reference_2_relationship} · {a.reference_2_phone}
+            {communityHistory.positive_count > 0 && communityHistory.negative_count === 0 && (
+              <View style={[s.infoBox, { backgroundColor: '#f0fdf4' }]}>
+                <Text style={[s.infoBoxText, { color: '#16a34a', fontFamily: 'Helvetica-Bold' }]}>
+                  {communityHistory.positive_count} positive rating{communityHistory.positive_count !== 1 ? 's' : ''} from TenantIQ landlords
                 </Text>
               </View>
             )}
+            {communityHistory.matches.slice(0, 5).map((m, i) => (
+              <View key={i} style={[s.infoBox, {
+                backgroundColor: m.rating === 'positive' ? '#f0fdf4' : '#fef2f2',
+                marginBottom: 4,
+              }]}>
+                <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: m.rating === 'positive' ? '#16a34a' : '#dc2626' }]}>
+                  {m.rating === 'positive' ? '▲ Positive' : '▼ Negative'} — {fmtDate(m.created_at)}
+                  {m.is_disputed ? ' [DISPUTED]' : ''}
+                </Text>
+                {!!m.description && (
+                  <Text style={[s.infoBoxText, { color: '#475569', marginTop: 2 }]}>{m.description.slice(0, 200)}</Text>
+                )}
+                {!!m.property_address && (
+                  <Text style={[s.infoBoxText, { color: '#94a3b8', marginTop: 2 }]}>Property: {m.property_address}</Text>
+                )}
+              </View>
+            ))}
+            <Text style={[s.infoBoxText, { color: '#94a3b8', marginTop: 4 }]}>
+              Matched by email, phone, and/or name. Unverified — use alongside other information.
+            </Text>
           </View>
-        </View>
+        )}
 
-        {/* Interview Questions */}
-        {a.interview_questions && a.interview_questions.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Suggested Interview Questions</Text>
-            {a.interview_questions.map((q, i) => (
-              <View key={i} style={styles.listItem}>
-                <Text style={[styles.bullet, { color: '#1d4ed8' }]}>{i + 1}.</Text>
-                <Text style={styles.listText}>{q}</Text>
+        {/* ── Public Court Records ── */}
+        {!!courtRecords && (
+          <View style={s.section}>
+            <Text style={[s.sectionTitle, courtRecords.found ? s.sectionTitleRed : s.sectionTitleGreen]}>
+              Public Court Records
+            </Text>
+            <View style={[s.infoBox, { backgroundColor: courtRecords.found ? '#fef2f2' : '#f0fdf4' }]}>
+              <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: courtRecords.found ? '#dc2626' : '#16a34a' }]}>
+                {courtRecords.found ? 'Records found' : 'No public court records found'}
+              </Text>
+              <Text style={[s.infoBoxText, { color: '#475569', marginTop: 3 }]}>{courtRecords.summary}</Text>
+              {!!courtRecords.details && (
+                <Text style={[s.infoBoxText, { color: '#64748b', marginTop: 3 }]}>{courtRecords.details}</Text>
+              )}
+            </View>
+            <Text style={[s.infoBoxText, { color: '#94a3b8', marginTop: 2 }]}>
+              Source: CanLII and Openroom. Results may be incomplete. Tenant consented to this search.
+            </Text>
+          </View>
+        )}
+
+        {/* ── Public Online Presence ── */}
+        {!!socialAnalysis && !!a.social_media_consent && (
+          <View style={s.section}>
+            <Text style={[s.sectionTitle, s.sectionTitleGray]}>Public Online Presence</Text>
+            <View style={[s.infoBox, { backgroundColor: '#f8fafc' }]}>
+              <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: '#475569', marginBottom: 3 }]}>
+                Assessment: {socialAnalysis.assessment.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </Text>
+              <Text style={[s.infoBoxText, { color: '#475569' }]}>{socialAnalysis.summary}</Text>
+            </View>
+            {socialAnalysis.red_flags.length > 0 && (
+              <View style={{ marginTop: 4 }}>
+                <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: '#dc2626', marginBottom: 3 }]}>Signals of concern:</Text>
+                {socialAnalysis.red_flags.map((f, i) => (
+                  <View key={i} style={s.listItem}>
+                    <Text style={[s.bullet, { color: '#dc2626' }]}>•</Text>
+                    <Text style={s.listText}>{f}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            {socialAnalysis.positive_signals.length > 0 && (
+              <View style={{ marginTop: 4 }}>
+                <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: '#16a34a', marginBottom: 3 }]}>Positive signals:</Text>
+                {socialAnalysis.positive_signals.map((sig, i) => (
+                  <View key={i} style={s.listItem}>
+                    <Text style={[s.bullet, { color: '#16a34a' }]}>•</Text>
+                    <Text style={s.listText}>{sig}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            <Text style={[s.infoBoxText, { color: '#94a3b8', marginTop: 4 }]}>
+              Tenant consented to public presence search. Results may not be attributable to this specific person.
+            </Text>
+          </View>
+        )}
+
+        {/* ── Interview Questions ── */}
+        {interviewQs.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Suggested Interview Questions</Text>
+            {interviewQs.map((q, i) => (
+              <View key={i} style={s.listItem}>
+                <Text style={[s.bullet, { color: '#1d4ed8', fontFamily: 'Helvetica-Bold' }]}>{i + 1}.</Text>
+                <Text style={s.listText}>{q}</Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* Footer */}
-        <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>TenantIQ Screening Report — Confidential</Text>
-          <Text style={styles.footerText}>Generated {new Date().toLocaleDateString('en-CA')}</Text>
+        {/* ── Footer ── */}
+        <View style={s.footer} fixed>
+          <Text style={s.footerText}>TenantIQ Screening Report — Confidential</Text>
+          <Text style={s.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
+
       </Page>
     </Document>
   )
