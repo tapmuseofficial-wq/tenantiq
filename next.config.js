@@ -42,9 +42,6 @@ const nextConfig = {
       },
     ],
   },
-  // puppeteer-core and @sparticuz/chromium contain native binaries and must
-  // not be bundled by webpack — they need to load as regular Node.js modules.
-  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
 }
 
 module.exports = nextConfig

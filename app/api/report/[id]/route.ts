@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { globalApiRateLimit } from '@/lib/api-rate-limit'
-import chromium from '@sparticuz/chromium'
-import puppeteer from 'puppeteer-core'
+import { jsPDF } from 'jspdf'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-function esc(s: unknown): string {
-  if (s == null) return ''
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
 
 function str(v: unknown): string {
   return typeof v === 'string' ? v : ''
@@ -22,25 +12,6 @@ function str(v: unknown): string {
 function strArr(v: unknown): string[] {
   if (!Array.isArray(v)) return []
   return v.filter((x): x is string => typeof x === 'string')
-}
-
-function scoreColor(score: number): string {
-  if (score >= 75) return '#16a34a'
-  if (score >= 55) return '#d97706'
-  return '#dc2626'
-}
-
-function recLabel(rec: string): string {
-  if (rec === 'approve') return 'APPROVED'
-  if (rec === 'review') return 'REVIEW'
-  if (rec === 'decline') return 'DECLINED'
-  return rec.toUpperCase()
-}
-
-function recColor(rec: string): string {
-  if (rec === 'approve') return '#16a34a'
-  if (rec === 'review') return '#d97706'
-  return '#dc2626'
 }
 
 const BREAKDOWN_LABELS: Record<string, string> = {
@@ -53,332 +24,463 @@ const BREAKDOWN_LABELS: Record<string, string> = {
   public_records: 'Public Records',
 }
 
-function generateHTML(
+function generatePDF(
   application: Record<string, unknown>,
   property: { name: string; address: string | null; monthly_rent: number | null },
-): string {
-  const score = typeof application.score === 'number' ? application.score : null
-  const rec = str(application.recommendation)
-  const redFlags = strArr(application.red_flags)
-  const positiveFactors = strArr(application.positive_factors)
-  const interviewQs = strArr(application.interview_questions)
+): ArrayBuffer {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', putOnlyUsedFonts: true })
 
-  const socialAnalysis =
-    application.social_media_analysis != null &&
-    typeof application.social_media_analysis === 'object'
-      ? (application.social_media_analysis as Record<string, unknown>)
-      : null
+  const PW = 210   // page width
+  const PH = 297   // page height
+  const M  = 14    // margin
+  const W  = PW - M * 2  // usable width
 
-  const communityHistory =
-    application.community_history != null &&
-    typeof application.community_history === 'object'
-      ? (application.community_history as Record<string, unknown>)
-      : null
+  let y = M
 
-  const scoreBreakdown =
-    application.score_breakdown != null &&
-    typeof application.score_breakdown === 'object'
-      ? (application.score_breakdown as Record<string, unknown>)
-      : null
+  // Ensure there's room; add a page if not
+  function need(h: number) {
+    if (y + h > PH - M - 4) {
+      doc.addPage()
+      y = M
+    }
+  }
 
-  const courtRecords =
-    socialAnalysis?.court_records != null &&
-    typeof socialAnalysis.court_records === 'object'
-      ? (socialAnalysis.court_records as Record<string, unknown>)
-      : null
+  function gap(h: number) { y += h }
 
-  const negCount =
-    communityHistory && typeof communityHistory.negative_count === 'number'
-      ? communityHistory.negative_count
-      : 0
-  const posCount =
-    communityHistory && typeof communityHistory.positive_count === 'number'
-      ? communityHistory.positive_count
-      : 0
-  const hasHistory = communityHistory?.has_history === true
+  // Set active font
+  function setFont(size: number, style: 'normal' | 'bold' = 'normal', color = '#111111') {
+    doc.setFontSize(size)
+    doc.setFont('helvetica', style)
+    doc.setTextColor(color)
+  }
 
-  const saRedFlags = strArr(socialAnalysis?.red_flags)
+  // Draw wrapped text at current y, advance y
+  function drawText(content: string, x: number, maxW: number, size: number, style: 'normal' | 'bold' = 'normal', color = '#111111') {
+    if (!content) return
+    setFont(size, style, color)
+    const lines = doc.splitTextToSize(content, maxW) as string[]
+    const lineH = size * 0.38
+    need(lines.length * lineH + 1)
+    doc.text(lines, x, y)
+    y += lines.length * lineH
+  }
+
+  // Label above, value below — advances y
+  function field(label: string, value: string, x = M, maxW = W) {
+    if (!value) return
+    need(10)
+    setFont(7.5, 'bold', '#6b7280')
+    doc.text(label.toUpperCase(), x, y)
+    y += 3.2
+    setFont(9, 'normal', '#111111')
+    const lines = doc.splitTextToSize(value, maxW) as string[]
+    doc.text(lines, x, y)
+    y += lines.length * 3.6 + 0.5
+  }
+
+  // Section heading with a divider line
+  function sectionTitle(title: string, color = '#1e3a5f') {
+    need(12)
+    gap(3)
+    setFont(8.5, 'bold', color)
+    doc.text(title.toUpperCase(), M, y)
+    y += 3
+    doc.setDrawColor(color)
+    doc.setLineWidth(0.25)
+    doc.line(M, y, M + W, y)
+    y += 3.5
+  }
+
+  // Bullet-list item — advances y
+  function bullet(content: string, color = '#374151') {
+    if (!content) return
+    need(6)
+    setFont(9, 'normal', color)
+    doc.text('•', M, y)
+    const lines = doc.splitTextToSize(content, W - 5) as string[]
+    doc.text(lines, M + 5, y)
+    y += Math.max(lines.length * 3.6, 4.5)
+  }
+
+  // ── Extract data ─────────────────────────────────────────────────────────
+  const score         = typeof application.score === 'number' ? application.score : null
+  const rec           = str(application.recommendation)
+  const redFlags      = strArr(application.red_flags)
+  const posFactors    = strArr(application.positive_factors)
+  const interviewQs   = strArr(application.interview_questions)
+  const monthlyRent   = property.monthly_rent
+  const monthlyIncome = typeof application.monthly_income === 'number' ? application.monthly_income : null
+  const incomeRatio   = monthlyIncome && monthlyRent ? (monthlyIncome / monthlyRent).toFixed(1) : null
+
+  const socialAnalysis = application.social_media_analysis != null && typeof application.social_media_analysis === 'object'
+    ? (application.social_media_analysis as Record<string, unknown>) : null
+  const communityHistory = application.community_history != null && typeof application.community_history === 'object'
+    ? (application.community_history as Record<string, unknown>) : null
+  const scoreBreakdown = application.score_breakdown != null && typeof application.score_breakdown === 'object'
+    ? (application.score_breakdown as Record<string, unknown>) : null
+  const courtRecords = socialAnalysis?.court_records != null && typeof socialAnalysis.court_records === 'object'
+    ? (socialAnalysis.court_records as Record<string, unknown>) : null
+
+  const negCount = communityHistory && typeof communityHistory.negative_count === 'number' ? communityHistory.negative_count : 0
+  const posCount = communityHistory && typeof communityHistory.positive_count === 'number' ? communityHistory.positive_count : 0
+  const saRedFlags       = strArr(socialAnalysis?.red_flags)
   const saPositiveSignals = strArr(socialAnalysis?.positive_signals)
-  const saAssessment = str(socialAnalysis?.assessment)
-  const saSummary = str(socialAnalysis?.summary)
+  const saAssessment     = str(socialAnalysis?.assessment)
+  const saSummary        = str(socialAnalysis?.summary)
+
+  const scoreHex = score !== null ? (score >= 75 ? '#16a34a' : score >= 55 ? '#d97706' : '#dc2626') : '#374151'
+  const recHex   = rec === 'approve' ? '#16a34a' : rec === 'review' ? '#d97706' : rec === 'decline' ? '#dc2626' : '#374151'
+  const recLabel = rec === 'approve' ? 'APPROVED' : rec === 'review' ? 'REVIEW' : rec === 'decline' ? 'DECLINED' : rec.toUpperCase()
 
   const generatedAt = new Date().toLocaleDateString('en-CA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
   })
-
   const reportId = String(application.id ?? '').slice(0, 8).toUpperCase()
-  const monthlyRent = property.monthly_rent
-  const monthlyIncome =
-    typeof application.monthly_income === 'number' ? application.monthly_income : null
-  const incomeRatio =
-    monthlyIncome && monthlyRent ? (monthlyIncome / monthlyRent).toFixed(1) : null
 
-  // Score breakdown rows
-  const breakdownRows = scoreBreakdown
-    ? Object.entries(scoreBreakdown)
-        .filter(([, val]) => typeof val === 'number')
-        .map(([key, val]) => {
-          const pct = Math.min(100, Math.max(0, val as number))
-          const label =
-            BREAKDOWN_LABELS[key] ||
-            key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-          const color =
-            pct >= 75 ? '#16a34a' : pct >= 55 ? '#d97706' : '#dc2626'
-          return `<div class="bar-row">
-            <div class="bar-label">${esc(label)}</div>
-            <div class="bar-track"><div class="bar-fill" style="width:${Math.round(pct)}%;background:${color}"></div></div>
-            <div class="bar-num" style="color:${color}">${Math.round(pct)}</div>
-          </div>`
-        })
-        .join('')
-    : ''
+  // ── Header bar ──────────────────────────────────────────────────────────
+  doc.setFillColor('#1e3a5f')
+  doc.rect(0, 0, PW, 22, 'F')
 
+  setFont(16, 'bold', '#ffffff')
+  doc.text('TenantIQ', M, 10)
+  setFont(9, 'normal', '#93c5fd')
+  doc.text('Tenant Screening Report', M, 16.5)
+
+  setFont(7.5, 'normal', '#93c5fd')
+  doc.text(`Generated: ${generatedAt}`, PW - M, 9, { align: 'right' })
+  doc.text(`Report ID: ${reportId}`, PW - M, 15, { align: 'right' })
+
+  // ── Sub-header ──────────────────────────────────────────────────────────
+  doc.setFillColor('#1e40af')
+  doc.rect(0, 22, PW, 9, 'F')
+
+  setFont(8, 'normal', '#bfdbfe')
+  doc.text('Applicant:', M, 27.5)
+  setFont(8, 'bold', '#ffffff')
+  doc.text(str(application.full_name), M + 18, 27.5)
+
+  setFont(8, 'normal', '#bfdbfe')
+  doc.text('Property:', 95, 27.5)
+  setFont(8, 'bold', '#ffffff')
+  doc.text(property.name, 110, 27.5)
+
+  if (monthlyRent) {
+    setFont(8, 'normal', '#bfdbfe')
+    doc.text('Rent:', 162, 27.5)
+    setFont(8, 'bold', '#ffffff')
+    doc.text(`$${Number(monthlyRent).toLocaleString()}/mo`, 170, 27.5)
+  }
+
+  y = 36
+
+  // ── Score box ───────────────────────────────────────────────────────────
+  doc.setFillColor('#f8fafc')
+  doc.setDrawColor('#e2e8f0')
+  doc.setLineWidth(0.3)
+  doc.roundedRect(M, y, W, 22, 2, 2, 'FD')
+
+  let boxX = M + 6
+
+  if (score !== null) {
+    setFont(26, 'bold', scoreHex)
+    doc.text(String(score), boxX, y + 13)
+    setFont(7.5, 'normal', '#6b7280')
+    doc.text('out of 100', boxX, y + 18.5)
+
+    boxX += 32
+    doc.setDrawColor('#e2e8f0')
+    doc.setLineWidth(0.3)
+    doc.line(boxX, y + 3, boxX, y + 19)
+    boxX += 6
+  }
+
+  if (rec) {
+    setFont(7.5, 'bold', '#6b7280')
+    doc.text('RECOMMENDATION', boxX, y + 7)
+    doc.setFillColor(recHex)
+    doc.roundedRect(boxX, y + 9, 30, 7, 1, 1, 'F')
+    setFont(8, 'bold', '#ffffff')
+    doc.text(recLabel, boxX + 15, y + 14, { align: 'center' })
+
+    boxX += 36
+    doc.setDrawColor('#e2e8f0')
+    doc.setLineWidth(0.3)
+    doc.line(boxX, y + 3, boxX, y + 19)
+    boxX += 6
+  }
+
+  if (incomeRatio && monthlyIncome && monthlyRent) {
+    setFont(7.5, 'bold', '#6b7280')
+    doc.text('INCOME TO RENT RATIO', boxX, y + 7)
+    setFont(18, 'bold', '#374151')
+    doc.text(`${incomeRatio}x`, boxX, y + 16)
+    setFont(7, 'normal', '#6b7280')
+    doc.text(`$${Number(monthlyIncome).toLocaleString()} / $${Number(monthlyRent).toLocaleString()} rent`, boxX, y + 20)
+  }
+
+  y += 26
+
+  // ── AI Summary ──────────────────────────────────────────────────────────
+  if (str(application.ai_summary)) {
+    sectionTitle('AI Analysis Summary')
+    drawText(str(application.ai_summary), M, W, 9)
+    gap(1)
+  }
+
+  // ── Applicant Information ───────────────────────────────────────────────
+  sectionTitle('Applicant Information')
+
+  const col  = (W - 8) / 2
+  const colR = M + col + 8
+
+  // Left column snapshot of y before drawing left col
+  const yL0 = y
+  field('Full Name',      str(application.full_name),    M, col)
+  field('Email',          str(application.email),         M, col)
+  if (str(application.phone))          field('Phone',          str(application.phone),          M, col)
+  if (str(application.date_of_birth))  field('Date of Birth',  str(application.date_of_birth),  M, col)
+  if (str(application.sin_last_three)) field('SIN (last 3)',   `••• ••• ${str(application.sin_last_three)}`, M, col)
+  if (str(application.current_address)) field('Current Address', str(application.current_address), M, col)
+  if (str(application.move_in_date))   field('Desired Move-in', str(application.move_in_date),  M, col)
+  const yL1 = y
+
+  // Right column — income & employment (reset y to top of section)
+  y = yL0
+  if (monthlyIncome !== null) field('Monthly Income', `$${Number(monthlyIncome).toLocaleString()}`, colR, col)
+  if (str(application.employer_name)) field('Employer',       str(application.employer_name), colR, col)
+  if (str(application.occupation))    field('Occupation',     str(application.occupation),    colR, col)
+  if (str(application.income_source)) field('Income Source',  str(application.income_source), colR, col)
+  const yR1 = y
+
+  y = Math.max(yL1, yR1) + 2
+
+  // ── Score Breakdown ─────────────────────────────────────────────────────
+  if (scoreBreakdown) {
+    const entries = Object.entries(scoreBreakdown).filter(([, v]) => typeof v === 'number')
+    if (entries.length > 0) {
+      sectionTitle('Score Breakdown')
+      for (const [key, val] of entries) {
+        need(8)
+        const pct   = Math.min(100, Math.max(0, val as number))
+        const label = BREAKDOWN_LABELS[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        const barClr = pct >= 75 ? '#16a34a' : pct >= 55 ? '#d97706' : '#dc2626'
+
+        setFont(8.5, 'normal', '#374151')
+        doc.text(label, M, y)
+
+        const barX = M + 58
+        const barW = W - 70
+
+        doc.setFillColor('#e5e7eb')
+        doc.roundedRect(barX, y - 3, barW, 4, 1, 1, 'F')
+        doc.setFillColor(barClr)
+        doc.roundedRect(barX, y - 3, (barW * pct) / 100, 4, 1, 1, 'F')
+
+        setFont(8.5, 'bold', barClr)
+        doc.text(String(Math.round(pct)), PW - M, y, { align: 'right' })
+
+        y += 6.5
+      }
+      gap(1)
+    }
+  }
+
+  // ── Red Flags ───────────────────────────────────────────────────────────
+  if (redFlags.length > 0) {
+    sectionTitle('Red Flags', '#dc2626')
+    for (const f of redFlags) bullet(f, '#dc2626')
+    gap(1)
+  }
+
+  // ── Positive Factors ────────────────────────────────────────────────────
+  if (posFactors.length > 0) {
+    sectionTitle('Positive Factors', '#16a34a')
+    for (const f of posFactors) bullet(f, '#16a34a')
+    gap(1)
+  }
+
+  // ── Rental History ──────────────────────────────────────────────────────
+  sectionTitle('Rental History')
+
+  const yH0 = y
+  if (str(application.previous_address))   field('Previous Address',   str(application.previous_address),    M, col)
+  if (str(application.reason_for_leaving)) field('Reason for Leaving', str(application.reason_for_leaving),  M, col)
+  const yHL = y
+
+  y = yH0
+  if (str(application.previous_landlord_name))  field('Previous Landlord', str(application.previous_landlord_name),  colR, col)
+  if (str(application.previous_landlord_phone)) field('Landlord Phone',    str(application.previous_landlord_phone), colR, col)
+  const yHR = y
+
+  y = Math.max(yHL, yHR)
+
+  if (application.has_evictions === true) {
+    const evText  = str(application.eviction_explanation)
+    const evLines = evText ? (doc.splitTextToSize(evText, W - 6) as string[]) : []
+    const boxH    = 8 + (evLines.length > 0 ? evLines.length * 3.6 + 2 : 0)
+    need(boxH + 2)
+    doc.setFillColor('#fef2f2')
+    doc.setDrawColor('#fca5a5')
+    doc.setLineWidth(0.3)
+    doc.roundedRect(M, y, W, boxH, 1, 1, 'FD')
+    setFont(8, 'bold', '#dc2626')
+    doc.text('EVICTION HISTORY REPORTED', M + 3, y + 5)
+    if (evLines.length > 0) {
+      setFont(8, 'normal', '#374151')
+      doc.text(evLines, M + 3, y + 10)
+    }
+    y += boxH + 2
+  }
+
+  gap(1)
+
+  // ── References ──────────────────────────────────────────────────────────
   const hasRef1 = typeof application.reference_1_name === 'string'
   const hasRef2 = typeof application.reference_2_name === 'string'
+  if (hasRef1 || hasRef2) {
+    sectionTitle('References')
+    if (hasRef1) {
+      need(8)
+      setFont(9, 'bold', '#111111')
+      doc.text(str(application.reference_1_name), M, y)
+      y += 3.5
+      if (typeof application.reference_1_relationship === 'string') {
+        setFont(8.5, 'normal', '#6b7280')
+        doc.text(str(application.reference_1_relationship), M, y)
+        y += 3.5
+      }
+    }
+    if (hasRef2) {
+      if (hasRef1) gap(2)
+      need(8)
+      setFont(9, 'bold', '#111111')
+      doc.text(str(application.reference_2_name), M, y)
+      y += 3.5
+      if (typeof application.reference_2_relationship === 'string') {
+        setFont(8.5, 'normal', '#6b7280')
+        doc.text(str(application.reference_2_relationship), M, y)
+        y += 3.5
+      }
+    }
+    gap(1)
+  }
 
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;background:white}
-.header{background:#1e3a5f;color:white;padding:18px 24px;display:flex;justify-content:space-between;align-items:flex-start}
-.header h1{font-size:20px;font-weight:700;letter-spacing:-0.5px}
-.header p{font-size:11px;color:#93c5fd;margin-top:2px}
-.header-right{text-align:right;font-size:9px;color:#93c5fd;line-height:1.7}
-.subheader{background:#1e40af;color:white;padding:7px 24px;font-size:10px;display:flex;gap:28px;flex-wrap:wrap}
-.subheader span{color:#bfdbfe}
-.subheader strong{color:white}
-.body{padding:14px 24px}
-.score-section{display:flex;align-items:center;gap:20px;padding:14px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:14px}
-.score-num{font-size:48px;font-weight:700;line-height:1}
-.score-label{font-size:9px;color:#6b7280;margin-top:2px}
-.rec-badge{padding:4px 12px;border-radius:4px;color:white;font-size:11px;font-weight:700;letter-spacing:0.5px;display:inline-block}
-.divider{width:1px;background:#e2e8f0;height:44px;flex-shrink:0}
-.section{margin-bottom:12px}
-.section-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#374151;border-bottom:1px solid #e5e7eb;padding-bottom:3px;margin-bottom:7px}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.field-row{margin-bottom:4px}
-.field-label{font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:1px}
-.field-value{font-size:11px;color:#111}
-.summary-text{font-size:11px;line-height:1.6;color:#374151}
-ul.item-list{list-style:none;padding:0}
-ul.item-list li{padding:2px 0 2px 12px;font-size:11px;line-height:1.4;position:relative}
-ul.item-list li::before{content:'•';position:absolute;left:0}
-ul.item-list.red li::before{color:#dc2626}
-ul.item-list.green li::before{color:#16a34a}
-ul.item-list.blue li::before{color:#2563eb}
-.bar-row{display:flex;align-items:center;margin-bottom:5px;gap:10px}
-.bar-label{width:155px;font-size:10px;color:#374151;flex-shrink:0}
-.bar-track{flex:1;height:7px;background:#e5e7eb;border-radius:4px;overflow:hidden}
-.bar-fill{height:100%;border-radius:4px}
-.bar-num{width:28px;text-align:right;font-size:10px;font-weight:600}
-.card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:8px 10px;margin-bottom:6px}
-.eviction-box{background:#fef2f2;border:1px solid #fca5a5;border-radius:4px;padding:8px 10px;margin-top:6px}
-.court-box{background:#fef2f2;border:1px solid #fca5a5;border-radius:4px;padding:9px 11px;margin-bottom:7px}
-.court-box.clean{background:#f0fdf4;border-color:#86efac}
-.comm-box{background:#f0f9ff;border:1px solid #bae6fd;border-radius:4px;padding:9px 12px}
-.interview-item{display:flex;gap:7px;margin-bottom:4px}
-.interview-num{font-size:11px;font-weight:600;color:#374151;flex-shrink:0;width:16px}
-.interview-text{font-size:11px;line-height:1.4;color:#374151}
-.footer{margin-top:18px;border-top:1px solid #e5e7eb;padding-top:9px;font-size:9px;color:#6b7280;line-height:1.5}
-</style>
-</head>
-<body>
+  // ── Community History ───────────────────────────────────────────────────
+  if (communityHistory) {
+    sectionTitle('TenantIQ Community History')
+    need(20)
+    doc.setFillColor('#f0f9ff')
+    doc.setDrawColor('#bae6fd')
+    doc.setLineWidth(0.3)
+    doc.roundedRect(M, y, W, 18, 1, 1, 'FD')
 
-<div class="header">
-  <div>
-    <h1>TenantIQ</h1>
-    <p>Tenant Screening Report</p>
-  </div>
-  <div class="header-right">
-    Generated: ${esc(generatedAt)}<br>
-    Report ID: ${esc(reportId)}
-  </div>
-</div>
+    setFont(20, 'bold', negCount > 0 ? '#dc2626' : '#16a34a')
+    doc.text(String(negCount), M + 13, y + 11, { align: 'center' })
+    setFont(7, 'normal', '#6b7280')
+    doc.text(`Negative${negCount !== 1 ? 's' : ''}`, M + 13, y + 15.5, { align: 'center' })
 
-<div class="subheader">
-  <div><span>Applicant: </span><strong>${esc(application.full_name)}</strong></div>
-  <div><span>Property: </span><strong>${esc(property.name)}</strong></div>
-  ${property.address ? `<div><span>Address: </span><strong>${esc(property.address)}</strong></div>` : ''}
-  ${monthlyRent ? `<div><span>Rent: </span><strong>$${Number(monthlyRent).toLocaleString()}/mo</strong></div>` : ''}
-</div>
+    doc.setDrawColor('#bae6fd')
+    doc.line(M + 28, y + 2, M + 28, y + 16)
 
-<div class="body">
+    setFont(20, 'bold', '#16a34a')
+    doc.text(String(posCount), M + 43, y + 11, { align: 'center' })
+    setFont(7, 'normal', '#6b7280')
+    doc.text(`Positive${posCount !== 1 ? 's' : ''}`, M + 43, y + 15.5, { align: 'center' })
 
-<div class="score-section">
-  ${score !== null ? `
-  <div>
-    <div class="score-num" style="color:${scoreColor(score)}">${score}</div>
-    <div class="score-label">out of 100</div>
-  </div>
-  <div class="divider"></div>` : ''}
-  ${rec ? `
-  <div>
-    <div class="field-label" style="margin-bottom:4px">Recommendation</div>
-    <div class="rec-badge" style="background:${recColor(rec)}">${recLabel(rec)}</div>
-  </div>` : ''}
-  ${incomeRatio && monthlyIncome && monthlyRent ? `
-  <div class="divider"></div>
-  <div>
-    <div class="field-label" style="margin-bottom:2px">Income to Rent</div>
-    <div style="font-size:14px;font-weight:700;color:#374151">${incomeRatio}x</div>
-    <div style="font-size:9px;color:#6b7280">$${Number(monthlyIncome).toLocaleString()} / $${Number(monthlyRent).toLocaleString()}</div>
-  </div>` : ''}
-</div>
+    const histMsg = communityHistory.has_history === true
+      ? 'This applicant has a history within the TenantIQ landlord community.'
+      : 'No history found in the TenantIQ landlord community.'
+    setFont(8.5, 'normal', '#374151')
+    const histLines = doc.splitTextToSize(histMsg, W - 62) as string[]
+    doc.text(histLines, M + 58, y + 9)
 
-${str(application.ai_summary) ? `
-<div class="section">
-  <div class="section-title">AI Analysis Summary</div>
-  <div class="summary-text">${esc(application.ai_summary)}</div>
-</div>` : ''}
+    y += 22
+    gap(1)
+  }
 
-<div class="grid-2">
-  <div class="section">
-    <div class="section-title">Applicant Information</div>
-    <div class="field-row"><div class="field-label">Full Name</div><div class="field-value">${esc(application.full_name)}</div></div>
-    <div class="field-row"><div class="field-label">Email</div><div class="field-value">${esc(application.email)}</div></div>
-    ${application.phone ? `<div class="field-row"><div class="field-label">Phone</div><div class="field-value">${esc(application.phone)}</div></div>` : ''}
-    ${application.date_of_birth ? `<div class="field-row"><div class="field-label">Date of Birth</div><div class="field-value">${esc(application.date_of_birth)}</div></div>` : ''}
-    ${application.sin_last_three ? `<div class="field-row"><div class="field-label">SIN (last 3)</div><div class="field-value">&bull;&bull;&bull; &bull;&bull;&bull; ${esc(application.sin_last_three)}</div></div>` : ''}
-    ${application.current_address ? `<div class="field-row"><div class="field-label">Current Address</div><div class="field-value">${esc(application.current_address)}</div></div>` : ''}
-    ${application.move_in_date ? `<div class="field-row"><div class="field-label">Desired Move-in</div><div class="field-value">${esc(application.move_in_date)}</div></div>` : ''}
-  </div>
-  <div class="section">
-    <div class="section-title">Income &amp; Employment</div>
-    ${monthlyIncome !== null ? `<div class="field-row"><div class="field-label">Monthly Income</div><div class="field-value">$${Number(monthlyIncome).toLocaleString()}</div></div>` : ''}
-    ${application.employer_name ? `<div class="field-row"><div class="field-label">Employer</div><div class="field-value">${esc(application.employer_name)}</div></div>` : ''}
-    ${application.occupation ? `<div class="field-row"><div class="field-label">Occupation</div><div class="field-value">${esc(application.occupation)}</div></div>` : ''}
-    ${application.income_source ? `<div class="field-row"><div class="field-label">Income Source</div><div class="field-value">${esc(application.income_source)}</div></div>` : ''}
-  </div>
-</div>
+  // ── Public Records ──────────────────────────────────────────────────────
+  if (socialAnalysis !== null && application.social_media_consent === true) {
+    sectionTitle('Public Records & Online Presence')
 
-${breakdownRows ? `
-<div class="section">
-  <div class="section-title">Score Breakdown</div>
-  ${breakdownRows}
-</div>` : ''}
+    if (courtRecords) {
+      const found       = courtRecords.found === true
+      const courtSum    = str(courtRecords.summary)
+      const courtDet    = str(courtRecords.details)
+      const detLines    = courtDet ? (doc.splitTextToSize(courtDet, W - 6) as string[]) : []
+      const boxH        = 8 + (courtSum ? 4 : 0) + (detLines.length > 0 ? detLines.length * 3.6 + 1 : 0)
 
-${redFlags.length > 0 || positiveFactors.length > 0 ? `
-<div class="grid-2">
-  ${redFlags.length > 0 ? `
-  <div class="section">
-    <div class="section-title" style="color:#dc2626">Red Flags</div>
-    <ul class="item-list red">${redFlags.map(f => `<li>${esc(f)}</li>`).join('')}</ul>
-  </div>` : ''}
-  ${positiveFactors.length > 0 ? `
-  <div class="section">
-    <div class="section-title" style="color:#16a34a">Positive Factors</div>
-    <ul class="item-list green">${positiveFactors.map(f => `<li>${esc(f)}</li>`).join('')}</ul>
-  </div>` : ''}
-</div>` : ''}
+      need(boxH + 2)
+      doc.setFillColor(found ? '#fef2f2' : '#f0fdf4')
+      doc.setDrawColor(found ? '#fca5a5' : '#86efac')
+      doc.setLineWidth(0.3)
+      doc.roundedRect(M, y, W, boxH, 1, 1, 'FD')
 
-<div class="section">
-  <div class="section-title">Rental History</div>
-  <div class="grid-2">
-    <div>
-      ${application.previous_address ? `<div class="field-row"><div class="field-label">Previous Address</div><div class="field-value">${esc(application.previous_address)}</div></div>` : ''}
-      ${application.reason_for_leaving ? `<div class="field-row"><div class="field-label">Reason for Leaving</div><div class="field-value">${esc(application.reason_for_leaving)}</div></div>` : ''}
-    </div>
-    <div>
-      ${application.previous_landlord_name ? `<div class="field-row"><div class="field-label">Previous Landlord</div><div class="field-value">${esc(application.previous_landlord_name)}</div></div>` : ''}
-      ${application.previous_landlord_phone ? `<div class="field-row"><div class="field-label">Landlord Phone</div><div class="field-value">${esc(application.previous_landlord_phone)}</div></div>` : ''}
-    </div>
-  </div>
-  ${application.has_evictions === true ? `
-  <div class="eviction-box">
-    <div style="font-size:10px;font-weight:700;color:#dc2626;margin-bottom:2px">EVICTION HISTORY REPORTED</div>
-    ${str(application.eviction_explanation) ? `<div style="font-size:10px;color:#374151">${esc(application.eviction_explanation)}</div>` : ''}
-  </div>` : ''}
-</div>
+      setFont(8.5, 'bold', found ? '#dc2626' : '#166534')
+      doc.text(`Court Records: ${found ? 'Records Found' : 'No Records Found'}`, M + 3, y + 5)
 
-${hasRef1 || hasRef2 ? `
-<div class="section">
-  <div class="section-title">References</div>
-  <div class="grid-2">
-    ${hasRef1 ? `
-    <div class="card">
-      <div class="field-value">${esc(application.reference_1_name)}</div>
-      ${typeof application.reference_1_relationship === 'string' ? `<div style="font-size:10px;color:#6b7280;margin-top:2px">${esc(application.reference_1_relationship)}</div>` : ''}
-    </div>` : ''}
-    ${hasRef2 ? `
-    <div class="card">
-      <div class="field-value">${esc(application.reference_2_name)}</div>
-      ${typeof application.reference_2_relationship === 'string' ? `<div style="font-size:10px;color:#6b7280;margin-top:2px">${esc(application.reference_2_relationship)}</div>` : ''}
-    </div>` : ''}
-  </div>
-</div>` : ''}
+      let cy = y + 10
+      if (courtSum) {
+        setFont(8, 'normal', '#374151')
+        doc.text(courtSum, M + 3, cy)
+        cy += 4
+      }
+      if (detLines.length > 0) {
+        setFont(8, 'normal', '#374151')
+        doc.text(detLines, M + 3, cy)
+      }
+      y += boxH + 3
+    }
 
-${communityHistory ? `
-<div class="section">
-  <div class="section-title">TenantIQ Community History</div>
-  <div class="comm-box">
-    <div style="display:flex;gap:24px;align-items:center">
-      <div>
-        <div style="font-size:18px;font-weight:700;color:${negCount > 0 ? '#dc2626' : '#16a34a'}">${negCount}</div>
-        <div style="font-size:9px;color:#6b7280">Negative${negCount !== 1 ? 's' : ''}</div>
-      </div>
-      <div>
-        <div style="font-size:18px;font-weight:700;color:#16a34a">${posCount}</div>
-        <div style="font-size:9px;color:#6b7280">Positive${posCount !== 1 ? 's' : ''}</div>
-      </div>
-      <div style="font-size:10px;color:#374151;flex:1">
-        ${hasHistory ? 'This applicant has a history within the TenantIQ landlord community.' : 'No history found in the TenantIQ landlord community.'}
-      </div>
-    </div>
-  </div>
-</div>` : ''}
+    if (saAssessment) {
+      field('Online Presence Assessment', saAssessment.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
+    }
+    if (saSummary) {
+      drawText(saSummary, M, W, 9)
+      gap(2)
+    }
+    if (saRedFlags.length > 0) {
+      need(8)
+      setFont(7.5, 'bold', '#dc2626')
+      doc.text('ONLINE RED FLAGS', M, y)
+      y += 3
+      for (const f of saRedFlags) bullet(f, '#dc2626')
+    }
+    if (saPositiveSignals.length > 0) {
+      need(8)
+      setFont(7.5, 'bold', '#16a34a')
+      doc.text('POSITIVE SIGNALS', M, y)
+      y += 3
+      for (const s of saPositiveSignals) bullet(s, '#16a34a')
+    }
+    gap(1)
+  }
 
-${socialAnalysis !== null && application.social_media_consent === true ? `
-<div class="section">
-  <div class="section-title">Public Records &amp; Online Presence</div>
-  ${courtRecords ? `
-  <div class="${courtRecords.found === true ? 'court-box' : 'court-box clean'}">
-    <div style="font-size:10px;font-weight:700;color:${courtRecords.found === true ? '#dc2626' : '#166534'};margin-bottom:3px">
-      Court Records: ${courtRecords.found === true ? 'Records Found' : 'No Records Found'}
-    </div>
-    ${str(courtRecords.summary) ? `<div style="font-size:10px;color:#374151">${esc(courtRecords.summary)}</div>` : ''}
-    ${str(courtRecords.details) ? `<div style="font-size:10px;color:#374151;margin-top:3px">${esc(courtRecords.details)}</div>` : ''}
-  </div>` : ''}
-  ${saAssessment ? `<div class="field-row"><div class="field-label">Online Presence</div><div class="field-value">${esc(saAssessment.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}</div></div>` : ''}
-  ${saSummary ? `<div style="font-size:10px;color:#374151;margin:5px 0;line-height:1.5">${esc(saSummary)}</div>` : ''}
-  ${saRedFlags.length > 0 || saPositiveSignals.length > 0 ? `
-  <div class="grid-2">
-    ${saRedFlags.length > 0 ? `
-    <div>
-      <div class="field-label" style="color:#dc2626;margin-bottom:3px">Online Red Flags</div>
-      <ul class="item-list red">${saRedFlags.map(f => `<li>${esc(f)}</li>`).join('')}</ul>
-    </div>` : ''}
-    ${saPositiveSignals.length > 0 ? `
-    <div>
-      <div class="field-label" style="color:#16a34a;margin-bottom:3px">Positive Signals</div>
-      <ul class="item-list green">${saPositiveSignals.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
-    </div>` : ''}
-  </div>` : ''}
-</div>` : ''}
+  // ── Interview Questions ──────────────────────────────────────────────────
+  if (interviewQs.length > 0) {
+    sectionTitle('Recommended Interview Questions')
+    interviewQs.forEach((q, i) => {
+      need(7)
+      const lines = doc.splitTextToSize(q, W - 7) as string[]
+      setFont(9, 'bold', '#374151')
+      doc.text(`${i + 1}.`, M, y)
+      setFont(9, 'normal', '#374151')
+      doc.text(lines, M + 7, y)
+      y += Math.max(lines.length * 3.6, 5)
+    })
+    gap(1)
+  }
 
-${interviewQs.length > 0 ? `
-<div class="section">
-  <div class="section-title">Recommended Interview Questions</div>
-  ${interviewQs.map((q, i) => `
-  <div class="interview-item">
-    <div class="interview-num">${i + 1}.</div>
-    <div class="interview-text">${esc(q)}</div>
-  </div>`).join('')}
-</div>` : ''}
+  // ── Footer / Disclaimer ─────────────────────────────────────────────────
+  need(20)
+  doc.setDrawColor('#e5e7eb')
+  doc.setLineWidth(0.3)
+  doc.line(M, y, M + W, y)
+  y += 4
+  const disclaimer = 'Disclaimer: This report is generated by TenantIQ using AI analysis and publicly available information. It is intended to assist landlords in their decision-making process and should not be the sole basis for rental decisions. TenantIQ does not guarantee the accuracy or completeness of this report. All screening decisions must comply with applicable human rights and privacy legislation.'
+  setFont(7.5, 'normal', '#6b7280')
+  doc.text(doc.splitTextToSize(disclaimer, W) as string[], M, y)
 
-<div class="footer">
-  <strong>Disclaimer:</strong> This report is generated by TenantIQ using AI analysis and publicly available information. It is intended to assist landlords in their decision-making process and should not be the sole basis for rental decisions. TenantIQ does not guarantee the accuracy or completeness of this report. All screening decisions must comply with applicable human rights and privacy legislation.
-</div>
-
-</div>
-</body>
-</html>`
+  return doc.output('arraybuffer')
 }
 
 export async function GET(
@@ -396,9 +498,7 @@ export async function GET(
 
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -433,42 +533,19 @@ export async function GET(
 
     console.log(`[report] generating PDF — application_id=${id} name="${application.full_name}"`)
 
-    const html = generateHTML(application as Record<string, unknown>, property)
+    const pdfData = generatePDF(application as Record<string, unknown>, property)
 
-    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null
-    try {
-      browser = await puppeteer.launch({
-        args: chromium.args,
-        executablePath: await chromium.executablePath(
-          process.env.CHROMIUM_EXECUTABLE_PATH,
-        ),
-        headless: true,
-      })
+    console.log(`[report] PDF generated — bytes=${pdfData.byteLength}`)
 
-      const page = await browser.newPage()
-      await page.setContent(html, { waitUntil: 'domcontentloaded' })
-      const pdfData = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '12mm', right: '14mm', bottom: '12mm', left: '14mm' },
-      })
-      const pdfBuffer = Buffer.from(pdfData)
+    const safeName = String(application.full_name ?? 'report')
+      .replace(/[^a-z0-9]/gi, '_')
+      .toLowerCase()
 
-      console.log(`[report] PDF generated — bytes=${pdfBuffer.byteLength}`)
-
-      const safeName = String(application.full_name ?? 'report')
-        .replace(/[^a-z0-9]/gi, '_')
-        .toLowerCase()
-
-      return new NextResponse(pdfBuffer, {
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="tenantiq_report_${safeName}.pdf"`,
-        },
-      })
-    } finally {
-      if (browser) await browser.close().catch(() => {})
-    }
+    return new NextResponse(new Blob([pdfData], { type: 'application/pdf' }), {
+      headers: {
+        'Content-Disposition': `attachment; filename="tenantiq_report_${safeName}.pdf"`,
+      },
+    })
   } catch (error) {
     console.error('[report] PDF generation failed —', error)
     return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 })
