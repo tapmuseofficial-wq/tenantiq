@@ -176,74 +176,31 @@ export async function fetchAllSocialLinks(urls: string[]): Promise<SocialFetchRe
 }
 
 /**
- * Fetch CanLII case search results for a full name.
- * Uses the public free-tier API — returns null on any failure.
+ * Search CanLII for a full name via DuckDuckGo.
+ * The CanLII REST API requires a paid key (returns 403 on free tier).
+ * DuckDuckGo-indexed CanLII pages are the best public alternative.
  */
 export async function fetchCanLII(fullName: string): Promise<string | null> {
-  const url = `https://api.canlii.org/v1/caseBrowse/en/?api_key=free&fullText=${encodeURIComponent(fullName)}&language=en`
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 10_000)
-
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'TenantIQ/1.0 (consent-based-screening; +https://tenants-iq.com)',
-        'Accept': 'application/json',
-      },
-    })
-    clearTimeout(timer)
-
-    if (!res.ok) return null
-
-    const json = await res.json() as {
-      cases?: Array<{ title?: string; citation?: string }>
-    }
-    const cases = json.cases ?? []
-    if (cases.length === 0) return null
-
-    const lines = cases.slice(0, 20).map(c => {
-      const title    = c.title    ?? 'Untitled case'
-      const citation = c.citation ?? ''
-      return citation ? `${title} [${citation}]` : title
-    })
-
-    return `CanLII results for "${fullName}":\n${lines.join('\n')}`
-  } catch {
-    clearTimeout(timer)
-    return null
-  }
+  const result = await searchDuckDuckGo(`site:canlii.org "${fullName}"`)
+  if (!result) return null
+  return `CanLII cases mentioning "${fullName}":\n${result}`
 }
 
 /**
- * Fetch Openroom eviction record search results for a full name.
- * Parses the public HTML search page — returns null on any failure.
+ * Search for LTB (Landlord and Tenant Board) eviction records via DuckDuckGo.
+ * Openroom now requires a login so it cannot be scraped directly.
+ * Two targeted queries cover Openroom-indexed results and broader LTB records.
  */
 export async function fetchOpenroom(fullName: string): Promise<string | null> {
-  const url = `https://openroom.ca/search?q=${encodeURIComponent(fullName)}`
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 10_000)
+  const [ltbResult, openroomResult] = await Promise.all([
+    searchDuckDuckGo(`"${fullName}" "landlord tenant board" OR "LTB" OR eviction OR "unpaid rent"`),
+    searchDuckDuckGo(`"${fullName}" site:openroom.ca`),
+  ])
 
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'TenantIQ/1.0 (consent-based-screening; +https://tenants-iq.com)',
-        'Accept': 'text/html',
-      },
-      redirect: 'follow',
-    })
-    clearTimeout(timer)
-
-    if (!res.ok) return null
-
-    const html  = await res.text()
-    const text  = htmlToText(html).slice(0, 4000)
-    return text || null
-  } catch {
-    clearTimeout(timer)
-    return null
-  }
+  const parts: string[] = []
+  if (ltbResult)      parts.push(`LTB / eviction records:\n${ltbResult}`)
+  if (openroomResult) parts.push(`Openroom records:\n${openroomResult}`)
+  return parts.length > 0 ? parts.join('\n\n') : null
 }
 
 /**
