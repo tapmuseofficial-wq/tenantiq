@@ -232,9 +232,15 @@ export function ReportDocument({ application: a, property }: ReportProps) {
   const redFlags       = a.red_flags       ?? []
   const positiveFactors = a.positive_factors ?? []
   const interviewQs    = a.interview_questions ?? []
-  const communityHistory = a.community_history as CommunityHistory | null
-  const socialAnalysis   = a.social_media_analysis as SocialAnalysis | null
-  const courtRecords     = socialAnalysis?.court_records ?? null
+  const communityHistory  = a.community_history as CommunityHistory | null
+  const communityMatches  = communityHistory?.matches ?? []
+
+  const socialAnalysis    = a.social_media_analysis as SocialAnalysis | null
+  const saAssessment      = socialAnalysis?.assessment ?? ''
+  const saRedFlags        = socialAnalysis?.red_flags ?? []
+  const saPositiveSignals = socialAnalysis?.positive_signals ?? []
+  const saSummary         = socialAnalysis?.summary ?? ''
+  const courtRecords      = socialAnalysis?.court_records ?? null
 
   const hasRedOrPositive = redFlags.length > 0 || positiveFactors.length > 0
 
@@ -456,26 +462,26 @@ export function ReportDocument({ application: a, property }: ReportProps) {
         )}
 
         {/* ── Community History ── */}
-        {!!communityHistory && communityHistory.matches.length > 0 && (
+        {!!communityHistory && communityMatches.length > 0 && (
           <View style={s.section}>
-            <Text style={[s.sectionTitle, communityHistory.negative_count > 0 ? s.sectionTitleRed : s.sectionTitleGreen]}>
+            <Text style={[s.sectionTitle, (communityHistory.negative_count ?? 0) > 0 ? s.sectionTitleRed : s.sectionTitleGreen]}>
               Community History
             </Text>
-            {communityHistory.negative_count > 0 && (
+            {(communityHistory.negative_count ?? 0) > 0 && (
               <View style={[s.infoBox, { backgroundColor: '#fef2f2' }]}>
                 <Text style={[s.infoBoxText, { color: '#dc2626', fontFamily: 'Helvetica-Bold' }]}>
                   {communityHistory.negative_count} negative rating{communityHistory.negative_count !== 1 ? 's' : ''} from TenantIQ landlords
                 </Text>
               </View>
             )}
-            {communityHistory.positive_count > 0 && communityHistory.negative_count === 0 && (
+            {(communityHistory.positive_count ?? 0) > 0 && (communityHistory.negative_count ?? 0) === 0 && (
               <View style={[s.infoBox, { backgroundColor: '#f0fdf4' }]}>
                 <Text style={[s.infoBoxText, { color: '#16a34a', fontFamily: 'Helvetica-Bold' }]}>
                   {communityHistory.positive_count} positive rating{communityHistory.positive_count !== 1 ? 's' : ''} from TenantIQ landlords
                 </Text>
               </View>
             )}
-            {communityHistory.matches.slice(0, 5).map((m, i) => (
+            {communityMatches.slice(0, 5).map((m, i) => (
               <View key={i} style={[s.infoBox, {
                 backgroundColor: m.rating === 'positive' ? '#f0fdf4' : '#fef2f2',
                 marginBottom: 4,
@@ -525,14 +531,14 @@ export function ReportDocument({ application: a, property }: ReportProps) {
             <Text style={[s.sectionTitle, s.sectionTitleGray]}>Public Online Presence</Text>
             <View style={[s.infoBox, { backgroundColor: '#f8fafc' }]}>
               <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: '#475569', marginBottom: 3 }]}>
-                Assessment: {socialAnalysis.assessment.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                Assessment: {saAssessment.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </Text>
-              <Text style={[s.infoBoxText, { color: '#475569' }]}>{socialAnalysis.summary}</Text>
+              <Text style={[s.infoBoxText, { color: '#475569' }]}>{saSummary}</Text>
             </View>
-            {socialAnalysis.red_flags.length > 0 && (
+            {saRedFlags.length > 0 && (
               <View style={{ marginTop: 4 }}>
                 <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: '#dc2626', marginBottom: 3 }]}>Signals of concern:</Text>
-                {socialAnalysis.red_flags.map((f, i) => (
+                {saRedFlags.map((f, i) => (
                   <View key={i} style={s.listItem}>
                     <Text style={[s.bullet, { color: '#dc2626' }]}>•</Text>
                     <Text style={s.listText}>{f}</Text>
@@ -540,10 +546,10 @@ export function ReportDocument({ application: a, property }: ReportProps) {
                 ))}
               </View>
             )}
-            {socialAnalysis.positive_signals.length > 0 && (
+            {saPositiveSignals.length > 0 && (
               <View style={{ marginTop: 4 }}>
                 <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: '#16a34a', marginBottom: 3 }]}>Positive signals:</Text>
-                {socialAnalysis.positive_signals.map((sig, i) => (
+                {saPositiveSignals.map((sig, i) => (
                   <View key={i} style={s.listItem}>
                     <Text style={[s.bullet, { color: '#16a34a' }]}>•</Text>
                     <Text style={s.listText}>{sig}</Text>
