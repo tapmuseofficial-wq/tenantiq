@@ -165,9 +165,14 @@ export async function runAnalysis(application_id: string): Promise<void> {
         court_records:    courtRecords,
       }
 
+      // Plain-text summary stored in dedicated column for easy display
+      const publicRecordsResult = courtRecords.found
+        ? `Records found: ${courtRecords.summary}${courtRecords.details ? '\n\n' + courtRecords.details : ''}`
+        : (courtRecords.summary || 'No public records found for this applicant.')
+
       await supabase
         .from('applications')
-        .update({ social_media_analysis: combinedAnalysis })
+        .update({ social_media_analysis: combinedAnalysis, public_records_result: publicRecordsResult })
         .eq('id', application_id)
     } catch (err) {
       console.error(`[analyze] consent-based searches failed — application_id=${application_id}`, err instanceof Error ? err.message : err)
