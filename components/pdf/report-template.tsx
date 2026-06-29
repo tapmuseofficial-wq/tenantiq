@@ -91,7 +91,6 @@ const s = StyleSheet.create({
     backgroundColor: '#ffffff',
     color: '#1e293b',
   },
-  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -105,7 +104,6 @@ const s = StyleSheet.create({
   headerLabel: { fontSize: 8, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 },
   headerValue: { fontSize: 10, color: '#1e293b', fontFamily: 'Helvetica-Bold' },
   headerRight: { alignItems: 'flex-end' },
-  // Score row
   scoreSection: { flexDirection: 'row', marginBottom: 20 },
   scoreBox: {
     borderRadius: 10,
@@ -121,7 +119,6 @@ const s = StyleSheet.create({
   recLabel: { fontSize: 8, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
   recValue: { fontSize: 18, fontFamily: 'Helvetica-Bold', marginBottom: 6 },
   recReason: { fontSize: 9, color: '#475569', lineHeight: 1.5 },
-  // Sections
   section: { marginBottom: 18 },
   sectionTitle: {
     fontSize: 11,
@@ -135,13 +132,11 @@ const s = StyleSheet.create({
   sectionTitleRed:   { color: '#dc2626' },
   sectionTitleGreen: { color: '#16a34a' },
   sectionTitleGray:  { color: '#64748b' },
-  // Fields
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   field: { width: '50%', marginBottom: 8, paddingRight: 8 },
   fieldFull: { width: '100%', marginBottom: 8 },
   fieldLabel: { fontSize: 8, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
   fieldValue: { fontSize: 10, color: '#1e293b' },
-  // Score breakdown
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -155,21 +150,16 @@ const s = StyleSheet.create({
   scoreRowBar: { width: 80, height: 5, backgroundColor: '#e2e8f0', borderRadius: 3, marginRight: 8 },
   scoreRowFill: { height: 5, borderRadius: 3 },
   scoreRowValue: { width: 36, fontSize: 9, fontFamily: 'Helvetica-Bold', textAlign: 'right' },
-  // Lists
   listItem: { flexDirection: 'row', marginBottom: 4 },
   bullet: { width: 14, fontSize: 9 },
   listText: { flex: 1, fontSize: 9, color: '#475569', lineHeight: 1.5 },
-  // Badges
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, alignSelf: 'flex-start' },
   badgeText: { fontSize: 9, fontFamily: 'Helvetica-Bold' },
-  // Info boxes
   infoBox: { borderRadius: 6, padding: 10, marginBottom: 8 },
   infoBoxText: { fontSize: 9, lineHeight: 1.5 },
-  // Two-column layout
   cols: { flexDirection: 'row' },
   col: { flex: 1, paddingRight: 8 },
   colRight: { flex: 1, paddingLeft: 8 },
-  // Footer
   footer: {
     position: 'absolute',
     bottom: 28,
@@ -216,12 +206,12 @@ function fmtDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString('en-CA')
 }
 
-// Ensure a value from JSONB is a plain string. Anything else becomes ''.
+// Coerce any JSONB value to a plain string — never lets an object reach <Text>.
 function str(v: unknown): string {
   return typeof v === 'string' ? v : ''
 }
 
-// Ensure a value from JSONB is an array of plain strings.
+// Coerce any JSONB value to an array of plain strings.
 function strArr(v: unknown): string[] {
   if (!Array.isArray(v)) return []
   return v.filter((x): x is string => typeof x === 'string')
@@ -239,12 +229,15 @@ export function ReportDocument({ application: a, property }: ReportProps) {
     ? (effectiveIncome / property.monthly_rent).toFixed(1) + 'x'
     : '—'
 
-  const breakdown = a.score_breakdown
+  const breakdown       = a.score_breakdown
   const redFlags        = strArr(a.red_flags)
   const positiveFactors = strArr(a.positive_factors)
   const interviewQs     = strArr(a.interview_questions)
-  const communityHistory  = a.community_history as CommunityHistory | null
-  const communityMatches  = Array.isArray(communityHistory?.matches) ? communityHistory!.matches : []
+
+  const communityHistory = a.community_history as CommunityHistory | null
+  const communityMatches = Array.isArray(communityHistory?.matches) ? communityHistory!.matches : []
+  const negCount         = typeof communityHistory?.negative_count === 'number' ? communityHistory.negative_count : 0
+  const posCount         = typeof communityHistory?.positive_count === 'number' ? communityHistory.positive_count : 0
 
   const socialAnalysis    = a.social_media_analysis as SocialAnalysis | null
   const saAssessment      = str(socialAnalysis?.assessment)
@@ -256,6 +249,7 @@ export function ReportDocument({ application: a, property }: ReportProps) {
     : null
 
   const hasRedOrPositive = redFlags.length > 0 || positiveFactors.length > 0
+  const hasRef           = typeof a.reference_1_name === 'string' || typeof a.reference_2_name === 'string'
 
   return (
     <Document>
@@ -269,7 +263,7 @@ export function ReportDocument({ application: a, property }: ReportProps) {
           </View>
           <View style={s.headerRight}>
             <Text style={s.headerLabel}>Property</Text>
-            <Text style={s.headerValue}>{property.name}</Text>
+            <Text style={s.headerValue}>{str(property.name)}</Text>
             <Text style={[s.headerLabel, { marginTop: 6 }]}>Monthly Rent</Text>
             <Text style={s.headerValue}>${fmt(property.monthly_rent)}/mo</Text>
             <Text style={[s.headerLabel, { marginTop: 6 }]}>Report Date</Text>
@@ -288,17 +282,17 @@ export function ReportDocument({ application: a, property }: ReportProps) {
           <View style={[s.recBox, { backgroundColor: recColors.bg }]}>
             <Text style={[s.recLabel, { color: recColors.text }]}>Recommendation</Text>
             <Text style={[s.recValue, { color: recColors.text }]}>{recColors.label}</Text>
-            <Text style={s.recReason}>{a.recommendation_reason || 'Analysis pending'}</Text>
+            <Text style={s.recReason}>{str(a.recommendation_reason) || 'Analysis pending'}</Text>
           </View>
         </View>
 
         {/* ── AI Summary ── */}
-        {!!a.ai_summary && (
+        {typeof a.ai_summary === 'string' && a.ai_summary.length > 0 ? (
           <View style={[s.section, { backgroundColor: '#f8fafc', borderRadius: 8, padding: 12 }]}>
             <Text style={[s.sectionTitle, { borderBottomWidth: 0, marginBottom: 4 }]}>AI Summary</Text>
             <Text style={{ fontSize: 9, color: '#475569', lineHeight: 1.6 }}>{a.ai_summary}</Text>
           </View>
-        )}
+        ) : null}
 
         {/* ── Applicant Info ── */}
         <View style={s.section}>
@@ -306,15 +300,15 @@ export function ReportDocument({ application: a, property }: ReportProps) {
           <View style={s.grid}>
             <View style={s.field}>
               <Text style={s.fieldLabel}>Full Name</Text>
-              <Text style={s.fieldValue}>{a.full_name}</Text>
+              <Text style={s.fieldValue}>{str(a.full_name) || '—'}</Text>
             </View>
             <View style={s.field}>
               <Text style={s.fieldLabel}>Email</Text>
-              <Text style={s.fieldValue}>{a.email}</Text>
+              <Text style={s.fieldValue}>{str(a.email) || '—'}</Text>
             </View>
             <View style={s.field}>
               <Text style={s.fieldLabel}>Phone</Text>
-              <Text style={s.fieldValue}>{a.phone}</Text>
+              <Text style={s.fieldValue}>{str(a.phone) || '—'}</Text>
             </View>
             <View style={s.field}>
               <Text style={s.fieldLabel}>Applied</Text>
@@ -334,7 +328,7 @@ export function ReportDocument({ application: a, property }: ReportProps) {
             <View style={s.field}>
               <Text style={s.fieldLabel}>Verified Income</Text>
               <Text style={s.fieldValue}>
-                {a.income_verified != null ? `$${fmt(a.income_verified)}/mo` : 'Not verified'}
+                {a.income_verified != null ? '$' + fmt(a.income_verified) + '/mo' : 'Not verified'}
               </Text>
             </View>
             <View style={s.field}>
@@ -349,35 +343,35 @@ export function ReportDocument({ application: a, property }: ReportProps) {
             </View>
             <View style={s.field}>
               <Text style={s.fieldLabel}>Employer</Text>
-              <Text style={s.fieldValue}>{a.employer_name}</Text>
+              <Text style={s.fieldValue}>{str(a.employer_name) || '—'}</Text>
             </View>
             <View style={s.field}>
               <Text style={s.fieldLabel}>Time at Job</Text>
-              <Text style={s.fieldValue}>{a.time_at_job}</Text>
+              <Text style={s.fieldValue}>{str(a.time_at_job) || '—'}</Text>
             </View>
             <View style={s.fieldFull}>
               <Text style={s.fieldLabel}>Reason for Moving</Text>
-              <Text style={s.fieldValue}>{a.reason_for_moving}</Text>
+              <Text style={s.fieldValue}>{str(a.reason_for_moving) || '—'}</Text>
             </View>
           </View>
         </View>
 
         {/* ── Score Breakdown ── */}
-        {!!breakdown && (
+        {breakdown != null ? (
           <View style={s.section}>
             <Text style={s.sectionTitle}>Score Breakdown</Text>
             {Object.entries(breakdown).filter(([, item]) => item != null).map(([key, item]) => {
-              const scoreVal = item.score ?? 0
-              const maxVal   = item.max   ?? 0
-              const pct      = maxVal > 0 ? scoreVal / maxVal : 0
+              const scoreVal   = typeof item.score === 'number' ? item.score : 0
+              const maxVal     = typeof item.max   === 'number' ? item.max   : 0
+              const pct        = maxVal > 0 ? scoreVal / maxVal : 0
               const pctClamped = Math.max(0, Math.min(100, Math.round(pct * 100)))
-              const fillColor = pct >= 0.75 ? '#16a34a' : pct >= 0.5 ? '#ca8a04' : '#dc2626'
-              const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+              const fillColor  = pct >= 0.75 ? '#16a34a' : pct >= 0.5 ? '#ca8a04' : '#dc2626'
+              const label      = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
               return (
                 <View key={key} style={s.scoreRow}>
                   <Text style={s.scoreRowLabel}>{label}</Text>
                   <View style={s.scoreRowBar}>
-                    <View style={[s.scoreRowFill, { width: pctClamped + '%', backgroundColor: fillColor }]} />
+                    <View style={[s.scoreRowFill, { width: String(pctClamped) + '%', backgroundColor: fillColor }]} />
                   </View>
                   <Text style={[s.scoreRowValue, { color: fillColor }]}>
                     {String(scoreVal)}/{String(maxVal)}
@@ -386,35 +380,35 @@ export function ReportDocument({ application: a, property }: ReportProps) {
               )
             })}
           </View>
-        )}
+        ) : null}
 
         {/* ── Red Flags & Positive Factors ── */}
-        {hasRedOrPositive && (
+        {hasRedOrPositive ? (
           <View style={[s.cols, { marginBottom: 18 }]}>
-            {redFlags.length > 0 && (
+            {redFlags.length > 0 ? (
               <View style={s.col}>
                 <Text style={[s.sectionTitle, s.sectionTitleRed]}>Red Flags</Text>
                 {redFlags.map((flag, i) => (
                   <View key={i} style={s.listItem}>
-                    <Text style={[s.bullet, { color: '#dc2626' }]}>•</Text>
+                    <Text style={[s.bullet, { color: '#dc2626' }]}>{'•'}</Text>
                     <Text style={s.listText}>{flag}</Text>
                   </View>
                 ))}
               </View>
-            )}
-            {positiveFactors.length > 0 && (
+            ) : null}
+            {positiveFactors.length > 0 ? (
               <View style={redFlags.length > 0 ? s.colRight : s.col}>
                 <Text style={[s.sectionTitle, s.sectionTitleGreen]}>Positive Factors</Text>
                 {positiveFactors.map((factor, i) => (
                   <View key={i} style={s.listItem}>
-                    <Text style={[s.bullet, { color: '#16a34a' }]}>•</Text>
+                    <Text style={[s.bullet, { color: '#16a34a' }]}>{'•'}</Text>
                     <Text style={s.listText}>{factor}</Text>
                   </View>
                 ))}
               </View>
-            )}
+            ) : null}
           </View>
-        )}
+        ) : null}
 
         {/* ── Rental History ── */}
         <View style={s.section}>
@@ -425,103 +419,102 @@ export function ReportDocument({ application: a, property }: ReportProps) {
               <Text style={[s.fieldValue, { color: a.has_evictions ? '#dc2626' : '#16a34a' }]}>
                 {a.has_evictions ? 'Yes' : 'None reported'}
               </Text>
-              {a.has_evictions && !!a.eviction_explanation && (
+              {a.has_evictions === true && typeof a.eviction_explanation === 'string' && a.eviction_explanation.length > 0 ? (
                 <Text style={[s.listText, { marginTop: 2 }]}>{a.eviction_explanation}</Text>
-              )}
+              ) : null}
             </View>
             <View style={s.field}>
               <Text style={s.fieldLabel}>Late Payments</Text>
               <Text style={[s.fieldValue, { color: a.has_late_payments ? '#ca8a04' : '#16a34a' }]}>
                 {a.has_late_payments ? 'Yes' : 'None reported'}
               </Text>
-              {a.has_late_payments && !!a.late_payment_explanation && (
+              {a.has_late_payments === true && typeof a.late_payment_explanation === 'string' && a.late_payment_explanation.length > 0 ? (
                 <Text style={[s.listText, { marginTop: 2 }]}>{a.late_payment_explanation}</Text>
-              )}
+              ) : null}
             </View>
-            {a.has_pets && (
+            {a.has_pets === true ? (
               <View style={s.field}>
                 <Text style={s.fieldLabel}>Pets</Text>
                 <Text style={[s.fieldValue, { color: '#ca8a04' }]}>Yes</Text>
-                {!!a.pet_details && (
+                {typeof a.pet_details === 'string' && a.pet_details.length > 0 ? (
                   <Text style={[s.listText, { marginTop: 2 }]}>{a.pet_details}</Text>
-                )}
+                ) : null}
               </View>
-            )}
+            ) : null}
           </View>
         </View>
 
         {/* ── References ── */}
-        {(!!a.reference_1_name || !!a.reference_2_name) && (
+        {hasRef ? (
           <View style={s.section}>
             <Text style={s.sectionTitle}>References</Text>
             <View style={s.grid}>
-              {!!a.reference_1_name && (
+              {typeof a.reference_1_name === 'string' ? (
                 <View style={s.field}>
                   <Text style={s.fieldLabel}>Reference 1</Text>
                   <Text style={s.fieldValue}>{a.reference_1_name}</Text>
                   <Text style={[s.listText, { marginTop: 2 }]}>
-                    {a.reference_1_relationship || ''}{a.reference_1_relationship && a.reference_1_phone ? ' · ' : ''}{a.reference_1_phone || ''}
+                    {str(a.reference_1_relationship)}{a.reference_1_relationship && a.reference_1_phone ? ' · ' : ''}{str(a.reference_1_phone)}
                   </Text>
                 </View>
-              )}
-              {!!a.reference_2_name && (
+              ) : null}
+              {typeof a.reference_2_name === 'string' ? (
                 <View style={s.field}>
                   <Text style={s.fieldLabel}>Reference 2</Text>
                   <Text style={s.fieldValue}>{a.reference_2_name}</Text>
                   <Text style={[s.listText, { marginTop: 2 }]}>
-                    {a.reference_2_relationship || ''}{a.reference_2_relationship && a.reference_2_phone ? ' · ' : ''}{a.reference_2_phone || ''}
+                    {str(a.reference_2_relationship)}{a.reference_2_relationship && a.reference_2_phone ? ' · ' : ''}{str(a.reference_2_phone)}
                   </Text>
                 </View>
-              )}
+              ) : null}
             </View>
           </View>
-        )}
+        ) : null}
 
         {/* ── Community History ── */}
-        {!!communityHistory && communityMatches.length > 0 && (
+        {communityHistory != null && communityMatches.length > 0 ? (
           <View style={s.section}>
-            <Text style={[s.sectionTitle, (communityHistory.negative_count ?? 0) > 0 ? s.sectionTitleRed : s.sectionTitleGreen]}>
+            <Text style={[s.sectionTitle, negCount > 0 ? s.sectionTitleRed : s.sectionTitleGreen]}>
               Community History
             </Text>
-            {(communityHistory.negative_count ?? 0) > 0 && (
+            {negCount > 0 ? (
               <View style={[s.infoBox, { backgroundColor: '#fef2f2' }]}>
                 <Text style={[s.infoBoxText, { color: '#dc2626', fontFamily: 'Helvetica-Bold' }]}>
-                  {communityHistory.negative_count} negative rating{communityHistory.negative_count !== 1 ? 's' : ''} from TenantIQ landlords
+                  {String(negCount)}{' negative rating'}{negCount !== 1 ? 's' : ''}{' from TenantIQ landlords'}
                 </Text>
               </View>
-            )}
-            {(communityHistory.positive_count ?? 0) > 0 && (communityHistory.negative_count ?? 0) === 0 && (
+            ) : null}
+            {posCount > 0 && negCount === 0 ? (
               <View style={[s.infoBox, { backgroundColor: '#f0fdf4' }]}>
                 <Text style={[s.infoBoxText, { color: '#16a34a', fontFamily: 'Helvetica-Bold' }]}>
-                  {communityHistory.positive_count} positive rating{communityHistory.positive_count !== 1 ? 's' : ''} from TenantIQ landlords
+                  {String(posCount)}{' positive rating'}{posCount !== 1 ? 's' : ''}{' from TenantIQ landlords'}
                 </Text>
               </View>
-            )}
+            ) : null}
             {communityMatches.slice(0, 5).map((m, i) => (
               <View key={i} style={[s.infoBox, {
                 backgroundColor: m.rating === 'positive' ? '#f0fdf4' : '#fef2f2',
                 marginBottom: 4,
               }]}>
                 <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: m.rating === 'positive' ? '#16a34a' : '#dc2626' }]}>
-                  {m.rating === 'positive' ? '▲ Positive' : '▼ Negative'} — {fmtDate(m.created_at)}
-                  {m.is_disputed ? ' [DISPUTED]' : ''}
+                  {m.rating === 'positive' ? '▲ Positive' : '▼ Negative'}{' — '}{fmtDate(m.created_at)}{m.is_disputed ? ' [DISPUTED]' : ''}
                 </Text>
-                {typeof m.description === 'string' && m.description.length > 0 && (
+                {typeof m.description === 'string' && m.description.length > 0 ? (
                   <Text style={[s.infoBoxText, { color: '#475569', marginTop: 2 }]}>{m.description.slice(0, 200)}</Text>
-                )}
-                {typeof m.property_address === 'string' && m.property_address.length > 0 && (
-                  <Text style={[s.infoBoxText, { color: '#94a3b8', marginTop: 2 }]}>Property: {m.property_address}</Text>
-                )}
+                ) : null}
+                {typeof m.property_address === 'string' && m.property_address.length > 0 ? (
+                  <Text style={[s.infoBoxText, { color: '#94a3b8', marginTop: 2 }]}>{'Property: '}{m.property_address}</Text>
+                ) : null}
               </View>
             ))}
             <Text style={[s.infoBoxText, { color: '#94a3b8', marginTop: 4 }]}>
               Matched by email, phone, and/or name. Unverified — use alongside other information.
             </Text>
           </View>
-        )}
+        ) : null}
 
         {/* ── Public Court Records ── */}
-        {!!courtRecords && (
+        {courtRecords != null ? (
           <View style={s.section}>
             <Text style={[s.sectionTitle, courtRecords.found ? s.sectionTitleRed : s.sectionTitleGreen]}>
               Public Court Records
@@ -531,71 +524,71 @@ export function ReportDocument({ application: a, property }: ReportProps) {
                 {courtRecords.found ? 'Records found' : 'No public court records found'}
               </Text>
               <Text style={[s.infoBoxText, { color: '#475569', marginTop: 3 }]}>{str(courtRecords.summary)}</Text>
-              {typeof courtRecords.details === 'string' && courtRecords.details.length > 0 && (
+              {typeof courtRecords.details === 'string' && courtRecords.details.length > 0 ? (
                 <Text style={[s.infoBoxText, { color: '#64748b', marginTop: 3 }]}>{courtRecords.details}</Text>
-              )}
+              ) : null}
             </View>
             <Text style={[s.infoBoxText, { color: '#94a3b8', marginTop: 2 }]}>
               Source: CanLII and Openroom. Results may be incomplete. Tenant consented to this search.
             </Text>
           </View>
-        )}
+        ) : null}
 
         {/* ── Public Online Presence ── */}
-        {!!socialAnalysis && !!a.social_media_consent && (
+        {socialAnalysis != null && a.social_media_consent === true ? (
           <View style={s.section}>
             <Text style={[s.sectionTitle, s.sectionTitleGray]}>Public Online Presence</Text>
             <View style={[s.infoBox, { backgroundColor: '#f8fafc' }]}>
               <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: '#475569', marginBottom: 3 }]}>
-                Assessment: {saAssessment.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                {'Assessment: '}{saAssessment.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </Text>
               <Text style={[s.infoBoxText, { color: '#475569' }]}>{saSummary}</Text>
             </View>
-            {saRedFlags.length > 0 && (
+            {saRedFlags.length > 0 ? (
               <View style={{ marginTop: 4 }}>
                 <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: '#dc2626', marginBottom: 3 }]}>Signals of concern:</Text>
                 {saRedFlags.map((f, i) => (
                   <View key={i} style={s.listItem}>
-                    <Text style={[s.bullet, { color: '#dc2626' }]}>•</Text>
+                    <Text style={[s.bullet, { color: '#dc2626' }]}>{'•'}</Text>
                     <Text style={s.listText}>{f}</Text>
                   </View>
                 ))}
               </View>
-            )}
-            {saPositiveSignals.length > 0 && (
+            ) : null}
+            {saPositiveSignals.length > 0 ? (
               <View style={{ marginTop: 4 }}>
                 <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: '#16a34a', marginBottom: 3 }]}>Positive signals:</Text>
                 {saPositiveSignals.map((sig, i) => (
                   <View key={i} style={s.listItem}>
-                    <Text style={[s.bullet, { color: '#16a34a' }]}>•</Text>
+                    <Text style={[s.bullet, { color: '#16a34a' }]}>{'•'}</Text>
                     <Text style={s.listText}>{sig}</Text>
                   </View>
                 ))}
               </View>
-            )}
+            ) : null}
             <Text style={[s.infoBoxText, { color: '#94a3b8', marginTop: 4 }]}>
               Tenant consented to public presence search. Results may not be attributable to this specific person.
             </Text>
           </View>
-        )}
+        ) : null}
 
         {/* ── Interview Questions ── */}
-        {interviewQs.length > 0 && (
+        {interviewQs.length > 0 ? (
           <View style={s.section}>
             <Text style={s.sectionTitle}>Suggested Interview Questions</Text>
             {interviewQs.map((q, i) => (
               <View key={i} style={s.listItem}>
-                <Text style={[s.bullet, { color: '#1d4ed8', fontFamily: 'Helvetica-Bold' }]}>{i + 1}.</Text>
+                <Text style={[s.bullet, { color: '#1d4ed8', fontFamily: 'Helvetica-Bold' }]}>{String(i + 1) + '.'}</Text>
                 <Text style={s.listText}>{q}</Text>
               </View>
             ))}
           </View>
-        )}
+        ) : null}
 
         {/* ── Footer ── */}
         <View style={s.footer} fixed>
           <Text style={s.footerText}>TenantIQ Screening Report — Confidential</Text>
-          <Text style={s.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+          <Text style={s.footerText} render={({ pageNumber, totalPages }) => 'Page ' + String(pageNumber) + ' of ' + String(totalPages)} />
         </View>
 
       </Page>
