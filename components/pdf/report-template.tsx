@@ -216,6 +216,17 @@ function fmtDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString('en-CA')
 }
 
+// Ensure a value from JSONB is a plain string. Anything else becomes ''.
+function str(v: unknown): string {
+  return typeof v === 'string' ? v : ''
+}
+
+// Ensure a value from JSONB is an array of plain strings.
+function strArr(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  return v.filter((x): x is string => typeof x === 'string')
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function ReportDocument({ application: a, property }: ReportProps) {
@@ -229,18 +240,20 @@ export function ReportDocument({ application: a, property }: ReportProps) {
     : '—'
 
   const breakdown = a.score_breakdown
-  const redFlags       = a.red_flags       ?? []
-  const positiveFactors = a.positive_factors ?? []
-  const interviewQs    = a.interview_questions ?? []
+  const redFlags        = strArr(a.red_flags)
+  const positiveFactors = strArr(a.positive_factors)
+  const interviewQs     = strArr(a.interview_questions)
   const communityHistory  = a.community_history as CommunityHistory | null
-  const communityMatches  = communityHistory?.matches ?? []
+  const communityMatches  = Array.isArray(communityHistory?.matches) ? communityHistory!.matches : []
 
   const socialAnalysis    = a.social_media_analysis as SocialAnalysis | null
-  const saAssessment      = socialAnalysis?.assessment ?? ''
-  const saRedFlags        = socialAnalysis?.red_flags ?? []
-  const saPositiveSignals = socialAnalysis?.positive_signals ?? []
-  const saSummary         = socialAnalysis?.summary ?? ''
-  const courtRecords      = socialAnalysis?.court_records ?? null
+  const saAssessment      = str(socialAnalysis?.assessment)
+  const saRedFlags        = strArr(socialAnalysis?.red_flags)
+  const saPositiveSignals = strArr(socialAnalysis?.positive_signals)
+  const saSummary         = str(socialAnalysis?.summary)
+  const courtRecords      = (socialAnalysis?.court_records != null && typeof socialAnalysis.court_records === 'object')
+    ? socialAnalysis.court_records as CourtRecords
+    : null
 
   const hasRedOrPositive = redFlags.length > 0 || positiveFactors.length > 0
 
@@ -493,10 +506,10 @@ export function ReportDocument({ application: a, property }: ReportProps) {
                   {m.rating === 'positive' ? '▲ Positive' : '▼ Negative'} — {fmtDate(m.created_at)}
                   {m.is_disputed ? ' [DISPUTED]' : ''}
                 </Text>
-                {!!m.description && (
+                {typeof m.description === 'string' && m.description.length > 0 && (
                   <Text style={[s.infoBoxText, { color: '#475569', marginTop: 2 }]}>{m.description.slice(0, 200)}</Text>
                 )}
-                {!!m.property_address && (
+                {typeof m.property_address === 'string' && m.property_address.length > 0 && (
                   <Text style={[s.infoBoxText, { color: '#94a3b8', marginTop: 2 }]}>Property: {m.property_address}</Text>
                 )}
               </View>
@@ -517,8 +530,8 @@ export function ReportDocument({ application: a, property }: ReportProps) {
               <Text style={[s.infoBoxText, { fontFamily: 'Helvetica-Bold', color: courtRecords.found ? '#dc2626' : '#16a34a' }]}>
                 {courtRecords.found ? 'Records found' : 'No public court records found'}
               </Text>
-              <Text style={[s.infoBoxText, { color: '#475569', marginTop: 3 }]}>{courtRecords.summary}</Text>
-              {!!courtRecords.details && (
+              <Text style={[s.infoBoxText, { color: '#475569', marginTop: 3 }]}>{str(courtRecords.summary)}</Text>
+              {typeof courtRecords.details === 'string' && courtRecords.details.length > 0 && (
                 <Text style={[s.infoBoxText, { color: '#64748b', marginTop: 3 }]}>{courtRecords.details}</Text>
               )}
             </View>
