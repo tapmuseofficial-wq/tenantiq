@@ -353,18 +353,21 @@ export function ReportDocument({ application: a, property }: ReportProps) {
         {!!breakdown && (
           <View style={s.section}>
             <Text style={s.sectionTitle}>Score Breakdown</Text>
-            {Object.entries(breakdown).map(([key, item]) => {
-              const pct = item.max > 0 ? item.score / item.max : 0
+            {Object.entries(breakdown).filter(([, item]) => item != null).map(([key, item]) => {
+              const scoreVal = item.score ?? 0
+              const maxVal   = item.max   ?? 0
+              const pct      = maxVal > 0 ? scoreVal / maxVal : 0
+              const pctClamped = Math.max(0, Math.min(100, Math.round(pct * 100)))
               const fillColor = pct >= 0.75 ? '#16a34a' : pct >= 0.5 ? '#ca8a04' : '#dc2626'
               const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
               return (
                 <View key={key} style={s.scoreRow}>
                   <Text style={s.scoreRowLabel}>{label}</Text>
                   <View style={s.scoreRowBar}>
-                    <View style={[s.scoreRowFill, { width: Math.round(pct * 100) + '%', backgroundColor: fillColor }]} />
+                    <View style={[s.scoreRowFill, { width: pctClamped + '%', backgroundColor: fillColor }]} />
                   </View>
                   <Text style={[s.scoreRowValue, { color: fillColor }]}>
-                    {String(item.score)}/{String(item.max)}
+                    {String(scoreVal)}/{String(maxVal)}
                   </Text>
                 </View>
               )
