@@ -22,8 +22,6 @@ const securityHeaders = [
   { key: 'Permissions-Policy',        value: 'camera=(), microphone=(), geolocation=(), payment=()' },
 ]
 
-const path = require('path')
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Suppress the X-Powered-By: Next.js response header.
@@ -44,25 +42,9 @@ const nextConfig = {
       },
     ],
   },
-  // @react-pdf/renderer is removed from serverExternalPackages so webpack
-  // bundles it directly into the function. Vercel's serverless runtime has
-  // trouble resolving ESM packages via dynamic import() at runtime; bundling
-  // eliminates that dependency entirely.
-  webpack(config, { isServer }) {
-    if (isServer) {
-      // The package has a "browser" field that redirects react-pdf.js →
-      // react-pdf.browser.js. Alias it explicitly to the Node.js build so
-      // webpack never picks up the browser variant for server bundles.
-      config.resolve.alias = {
-        ...(config.resolve.alias ?? {}),
-        '@react-pdf/renderer': path.resolve(
-          __dirname,
-          'node_modules/@react-pdf/renderer/lib/react-pdf.js'
-        ),
-      }
-    }
-    return config
-  },
+  // puppeteer-core and @sparticuz/chromium contain native binaries and must
+  // not be bundled by webpack — they need to load as regular Node.js modules.
+  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
 }
 
 module.exports = nextConfig
