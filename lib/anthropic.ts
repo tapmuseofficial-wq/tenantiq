@@ -209,20 +209,67 @@ Reference 1: <user_input>${ref1}</user_input>
 Reference 2: <user_input>${ref2}</user_input>
 
 === SCORING CRITERIA (100 points total) ===
-1. Income to Rent Ratio (25 pts): Use verified income if available
-   - 3.0x+: 25pts | 2.5-3.0x: 20pts | 2.0-2.5x: 15pts | 1.5-2.0x: 8pts | <1.5x: 0pts
-2. Employment Stability (20 pts)
-   - 3+ years: 20pts | 1-3 years: 15pts | 6mo-1yr: 10pts | 3-6mo: 5pts | <3mo: 0pts
-3. Rental History (20 pts)
-   - No issues: 20pts | Late payments w/ explanation: 10pts | Eviction: 0pts
-4. Application Completeness (15 pts)
-   - All fields complete: 15pts | Minor gaps: 10pts | Major gaps: 5pts
-5. References Quality (10 pts)
-   - 2 complete references: 10pts | 1 complete: 5pts | None: 0pts
-6. Income Verification (10 pts)
-   - Verified (match): 10pts | No document: 5pts | Discrepancy detected: 0pts
+Be discriminating and use the FULL range. Do NOT cluster scores around 75-85.
+A perfect applicant scores 90+. A mediocre one scores 50-70. A risky one scores below 50.
 
-Deduct up to 10 points for significant red flags.
+1. Income to Rent Ratio (25 pts): Use VERIFIED income if available, else reported
+   - 3.5x+ rent: 25pts (exceptional)
+   - 3.0–3.5x rent: 21pts (strong)
+   - 2.5–3.0x rent: 16pts (adequate)
+   - 2.0–2.5x rent: 9pts (borderline — note this concern)
+   - 1.5–2.0x rent: 3pts (high risk)
+   - Below 1.5x rent: 0pts (disqualifying)
+
+2. Employment Stability (20 pts)
+   - 5+ years at same employer: 20pts
+   - 3–5 years: 16pts
+   - 1–3 years: 11pts
+   - 6–12 months: 6pts
+   - 3–6 months: 3pts
+   - Under 3 months, unemployed, or no employer listed: 0pts
+   - Self-employed with no verifiable documentation: cap at 10pts
+
+3. Rental History (20 pts)
+   - No evictions, no late payments ever: 20pts
+   - 1–2 late payments with strong explanation: 13pts
+   - Multiple late payments or vague explanation: 6pts
+   - Eviction filed but dismissed or resolved: 4pts
+   - Eviction judgment against tenant: 0pts (major red flag — note explicitly)
+
+4. Application Completeness (15 pts)
+   - All fields complete with detailed, thoughtful answers: 15pts
+   - Minor gaps (1–2 fields vague or empty): 10pts
+   - Several important fields missing or very brief: 5pts
+   - Major sections unanswered: 1pts
+
+5. References Quality (10 pts)
+   - 2 references with full name + relationship + phone: 10pts
+   - 1 complete reference: 5pts
+   - References listed but incomplete (missing phone or relationship): 2pts
+   - No references at all: 0pts (flag as a concern)
+
+6. Income Verification (10 pts)
+   - Document provided, income matches reported (within 10%): 10pts
+   - No document submitted: 4pts
+   - Document shows income lower than reported by 10–25%: 2pts
+   - Document shows discrepancy >25% or contradicts application: 0pts
+
+=== MANDATORY DEDUCTIONS (subtract from raw category total) ===
+Apply these after summing categories — the final score can drop significantly:
+- Eviction judgment on record: deduct 15pts
+- 3 or more late payments reported: deduct 8pts
+- Income below 2.0x rent (regardless of category score): deduct 5pts additional
+- Zero references provided: deduct 3pts
+- Evasive, inconsistent, or suspicious answers: deduct 3–6pts at judgment
+Final score floor is 0.
+
+=== SCORE CALIBRATION (read carefully) ===
+- 90–100: Exceptional. High income (3.5x+), 3+ years employment, clean history, great references. Rare.
+- 75–89: Strong candidate, only minor concerns. Approve.
+- 55–74: Adequate but noticeable weaknesses. Needs review.
+- 35–54: Significant risk factors. Lean decline.
+- 0–34: High-risk — eviction history, very low income, or major red flags. Decline.
+Most applications should fall between 40–74. Reserve 85+ for genuinely outstanding applicants.
 
 Return a JSON object with EXACTLY these fields:
 {

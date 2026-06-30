@@ -123,23 +123,48 @@ html {
   }
 
   .stat-card-blue {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 100%);
     border: 1px solid rgba(59, 130, 246, 0.2);
   }
 
   .stat-card-green {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%);
     border: 1px solid rgba(16, 185, 129, 0.2);
   }
 
   .stat-card-yellow {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 100%);
     border: 1px solid rgba(245, 158, 11, 0.2);
   }
 
   .stat-card-purple {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 100%);
     border: 1px solid rgba(139, 92, 246, 0.2);
+  }
+
+  .stat-card-interactive {
+    transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+    cursor: default;
+  }
+  .stat-card-blue.stat-card-interactive:hover {
+    border-color: rgba(59, 130, 246, 0.38);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.14), 0 2px 8px rgba(0,0,0,0.3);
+    transform: translateY(-1px);
+  }
+  .stat-card-green.stat-card-interactive:hover {
+    border-color: rgba(16, 185, 129, 0.38);
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.14), 0 2px 8px rgba(0,0,0,0.3);
+    transform: translateY(-1px);
+  }
+  .stat-card-yellow.stat-card-interactive:hover {
+    border-color: rgba(245, 158, 11, 0.38);
+    box-shadow: 0 8px 32px rgba(245, 158, 11, 0.12), 0 2px 8px rgba(0,0,0,0.3);
+    transform: translateY(-1px);
+  }
+  .stat-card-purple.stat-card-interactive:hover {
+    border-color: rgba(139, 92, 246, 0.38);
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.14), 0 2px 8px rgba(0,0,0,0.3);
+    transform: translateY(-1px);
   }
 }
 
@@ -176,9 +201,29 @@ html {
 /* Hover utilities for interactive elements in server components */
 .row-hover {
   transition: background 150ms ease;
+  position: relative;
 }
 .row-hover:hover {
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(255, 255, 255, 0.032);
+}
+.row-hover::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #3B82F6, #8B5CF6);
+  opacity: 0;
+  transition: opacity 150ms ease;
+  border-radius: 0 1px 1px 0;
+}
+.row-hover:hover::before {
+  opacity: 1;
+}
+
+.card-hover {
+  transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 
 .back-btn {
